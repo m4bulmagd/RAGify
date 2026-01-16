@@ -55,7 +55,7 @@ const data = [
 
 export function RecentProjects() {
   return (
-    <Card className="glass-card col-span-3">
+    <Card className="col-span-3">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -81,7 +81,7 @@ export function RecentProjects() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{project.name}</span>
-                  <Badge variant={project.status === "active" ? "default" : "secondary"} className="text-[10px] uppercase">
+                  <Badge variant={project.status === "active" ? "default" : "destructive"} className="text-[10px] uppercase">
                     {project.status}
                   </Badge>
                 </div>

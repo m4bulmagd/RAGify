@@ -21,7 +21,7 @@ export function Citation({ id, source, page, score, text }: CitationProps) {
           <span className="font-mono text-[10px]">{id}</span>
         </Badge>
       </HoverCardTrigger>
-      <HoverCardContent className="w-80 glass-card">
+      <HoverCardContent className="w-80">
         <div className="flex justify-between space-x-4">
           <div className="space-y-1">
             <h4 className="text-sm font-semibold flex items-center gap-2">

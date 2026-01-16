@@ -131,7 +131,7 @@ export function AgentBuilderWizard() {
       </nav>
 
       {/* Main Content */}
-      <Card className="glass-card">
+      <Card>
         <CardHeader>
           <CardTitle>{steps[currentStep - 1].title}</CardTitle>
           <CardDescription>

@@ -44,62 +44,69 @@
   --radius: var(--radius);
 }
 
-/* Luminous Tech-Industrial Aesthetic */
+/* Theme: Clean Nature Tech (Light Mode) */
 :root {
   --radius: 0.5rem;
 
-  /* Default Dark Mode (Deep Industrial) */
-  --background: oklch(0.12 0.02 260); /* Almost black with hint of blue */
-  --foreground: oklch(0.95 0.01 260); /* Off-white */
+  /* BACKGROUND: White / Off-White */
+  --background: #FFFFFF; 
+  --foreground: #2E2E2E; /* ~Graphite for main text */
 
-  /* Card / Surfaces */
-  --card: oklch(0.15 0.03 260); /* Slightly lighter dark */
-  --card-foreground: oklch(0.95 0.01 260);
+  /* CARDS: White with subtle borders */
+  --card: #FFFFFF;
+  --card-foreground: #2E2E2E;
 
-  --popover: oklch(0.12 0.02 260);
-  --popover-foreground: oklch(0.95 0.01 260);
+  /* POPOVERS: White */
+  --popover: #FFFFFF;
+  --popover-foreground: #2E2E2E;
 
-  /* Primary: Electric Cyan/Blue */
-  --primary: oklch(0.65 0.22 245); /* Intense luminous blue */
-  --primary-foreground: oklch(0.1 0.05 260);
+  /* PRIMARY: ~Blue Spruce */
+  /* Used for main buttons and strong indicators */
+  --primary: #006A5A; 
+  --primary-foreground: #FFFFFF;
 
-  /* Secondary: Industrial Steel */
-  --secondary: oklch(0.25 0.05 260);
-  --secondary-foreground: oklch(0.9 0.05 260);
+  /* SECONDARY: ~Ocean Mist */
+  /* Used for lighter buttons, badges, backgrounds */
+  --secondary: #64B9AB;
+  --secondary-foreground: #FFFFFF;
 
-  /* Muted */
-  --muted: oklch(0.2 0.02 260);
-  --muted-foreground: oklch(0.6 0.05 260);
+  /* MUTED: Light Grays for subtle text */
+  --muted: #F3F4F6; 
+  --muted-foreground: #6B7280; /* Standard gray for subtitles */
 
-  /* Accent: Neon Purple/Pink for interactions */
-  --accent: oklch(0.25 0.08 280);
-  --accent-foreground: oklch(0.95 0.01 260);
+  /* ACCENT: ~Rosy Copper */
+  /* Interactive elements, hover states, or distinct data */
+  --accent: #DA5A46;
+  --accent-foreground: #FFFFFF;
 
-  /* Destructive */
-  --destructive: oklch(0.55 0.25 25);
-  --destructive-foreground: oklch(0.95 0.01 260);
+  /* DESTRUCTIVE: ~Vibrant Coral */
+  /* Errors and deletes */
+  --destructive: #E07766;
+  --destructive-foreground: #FFFFFF;
 
-  /* Borders & Inputs */
-  --border: oklch(0.25 0.05 260);
-  --input: oklch(0.2 0.04 260);
-  --ring: oklch(0.65 0.22 245); /* Ring matches primary */
+  /* BORDERS & INPUTS */
+  /* Light borders using a tint of Ocean Mist or Neutral Gray */
+  --border: #E5E7EB; 
+  --input: #F3F4F6;
+  --ring: #006A5A; /* ~Blue Spruce focus ring */
 
-  /* Chart Colors */
-  --chart-1: oklch(0.65 0.22 245);
-  --chart-2: oklch(0.7 0.2 160);
-  --chart-3: oklch(0.75 0.18 300);
-  --chart-4: oklch(0.8 0.15 60);
-  --chart-5: oklch(0.85 0.1 90);
+  /* CHART COLORS */
+  --chart-1: #006A5A; /* ~Blue Spruce */
+  --chart-2: #DA5A46; /* ~Rosy Copper */
+  --chart-3: #64B9AB; /* ~Ocean Mist */
+  --chart-4: #E07766; /* ~Vibrant Coral */
+  --chart-5: #0A5D5B; /* ~Stormy Teal */
 
-  /* Sidebar specific */
-  --sidebar-background: oklch(0.1 0.02 260);
-  --sidebar-foreground: oklch(0.9 0.02 260);
-  --sidebar-primary: oklch(0.65 0.22 245);
-  --sidebar-primary-foreground: oklch(0.1 0.05 260);
-  --sidebar-accent: oklch(0.18 0.04 260);
-  --sidebar-accent-foreground: oklch(0.95 0.01 260);
-  --sidebar-border: oklch(0.2 0.04 260);
-  --sidebar-ring: oklch(0.65 0.22 245);
+  /* SIDEBAR SPECIFIC (Dark Anchor) */
+  /* Keeping the sidebar dark ~Graphite anchors the light theme nicely */
+  --sidebar-background: #2E2E2E; /* ~Graphite */
+  --sidebar-foreground: #F9FAFB; /* Off-white text */
+  --sidebar-primary: #00A389;    /* ~Verdigris for active tab */
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #0A5D5B;     /* ~Stormy Teal for hover */
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2E2E2E;     /* Seamless sidebar */
+  --sidebar-ring: #00A389;
 }
 
 @layer base {
@@ -108,30 +115,23 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* Innovative lattice grid background for texture */
-    background-image: linear-gradient(to right, oklch(0.25 0.05 260 / 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, oklch(0.25 0.05 260 / 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
+    
+    /* Light Mode Texture: Very subtle dot pattern */
+    /* Uses ~Blue Spruce at 5% opacity */
+    background-image: radial-gradient(rgba(0, 106, 90, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
   
-  /* Modern scrollbar */
+  /* Scrollbar - polished for light mode */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full hover:bg-muted-foreground/50 transition-colors;
+    @apply bg-gray-300 rounded-full hover:bg-primary/50 transition-colors;
   }
 }
 
-/* Glassmorphism Utilities */
-@utility glass {
-  @apply bg-background/60 backdrop-blur-xl border-b border-border;
-}
-
-@utility glass-card {
-  @apply bg-card/40 backdrop-blur-lg border border-border shadow-xl;
-}

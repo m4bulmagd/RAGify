@@ -14,7 +14,7 @@ export default function DashboardPage() {
             Overview of your RAG agents and knowledge bases.
           </p>
         </div>
-        <Button className="glass bg-primary/20 hover:bg-primary/30 text-primary-foreground border-primary/50">
+        <Button className="bg-primary hover:bg-primary/50 text-primary-foreground border-primary/50">
           <Plus className="mr-2 h-4 w-4" /> New Project
         </Button>
       </div>

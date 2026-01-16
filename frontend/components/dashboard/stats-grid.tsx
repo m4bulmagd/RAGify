@@ -16,7 +16,7 @@ import {
 export function StatsGrid() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="glass-card hover:bg-card/50 transition-colors">
+      <Card className="hover:bg-card/50 transition-colors">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
           <BarChart3 className="h-4 w-4 text-primary" />
@@ -29,7 +29,7 @@ export function StatsGrid() {
         </CardContent>
       </Card>
       
-      <Card className="glass-card hover:bg-card/50 transition-colors">
+      <Card className="hover:bg-card/50 transition-colors">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
           <Zap className="h-4 w-4 text-primary" />
@@ -42,7 +42,7 @@ export function StatsGrid() {
         </CardContent>
       </Card>
       
-      <Card className="glass-card hover:bg-card/50 transition-colors">
+      <Card className="hover:bg-card/50 transition-colors">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Vector Storage</CardTitle>
           <Database className="h-4 w-4 text-primary" />
@@ -55,7 +55,7 @@ export function StatsGrid() {
         </CardContent>
       </Card>
       
-      <Card className="glass-card hover:bg-card/50 transition-colors">
+      <Card className="hover:bg-card/50 transition-colors">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Processing</CardTitle>
           <HardDrive className="h-4 w-4 text-primary" />

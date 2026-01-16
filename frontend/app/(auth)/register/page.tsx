@@ -7,7 +7,7 @@ import { Bot } from "lucide-react"
 
 export default function RegisterPage() {
   return (
-    <Card className="w-full max-w-md glass-card border-primary/20 shadow-2xl">
+    <Card className="w-full max-w-md border-primary/20 shadow-2xl">
       <CardHeader className="space-y-1 flex flex-col items-center text-center">
         <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-2 animate-pulse-slow">
            <Bot className="h-6 w-6 text-primary" />

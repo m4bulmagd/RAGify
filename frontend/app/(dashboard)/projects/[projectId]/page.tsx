@@ -19,7 +19,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer group">
+        <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
           <CardHeader>
             <div className="mb-2 rounded-md bg-primary/10 w-fit p-3 group-hover:bg-primary/20 transition-colors">
               <FileText className="h-6 w-6 text-primary" />
@@ -43,7 +43,7 @@ export default function ProjectPage({ params }: { params: { projectId: string } 
           </CardContent>
         </Card>
 
-        <Card className="glass-card hover:border-primary/50 transition-colors cursor-pointer group">
+        <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
           <CardHeader>
             <div className="mb-2 rounded-md bg-purple-500/10 w-fit p-3 group-hover:bg-purple-500/20 transition-colors">
               <Bot className="h-6 w-6 text-purple-500" />

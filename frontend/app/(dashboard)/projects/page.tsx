@@ -12,7 +12,7 @@ export default function ProjectsPage() {
             Manage your RAG workspaces.
           </p>
         </div>
-        <Button>
+        <Button className="bg-primary hover:bg-primary/50 text-primary-foreground border-primary/50">
           <Plus className="mr-2 h-4 w-4" /> New Project
         </Button>
       </div>

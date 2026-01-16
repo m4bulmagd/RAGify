@@ -52,7 +52,7 @@ const activity = [
 
 export function ActivityFeed() {
   return (
-    <Card className="glass-card col-span-2 lg:col-span-1">
+    <Card className="col-span-2 lg:col-span-1">
       <CardHeader>
         <CardTitle>Activity Feed</CardTitle>
         <CardDescription>

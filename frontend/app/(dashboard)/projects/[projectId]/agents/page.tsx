@@ -48,7 +48,7 @@ export default function AgentsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {agents.map(agent => (
-              <Card key={agent.id} className="glass-card hover:border-primary/50 transition-colors group">
+              <Card key={agent.id} className="hover:border-primary/50 transition-colors group">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="flex items-center gap-2">
                           <div className="p-2 rounded-full bg-primary/10 text-primary">
