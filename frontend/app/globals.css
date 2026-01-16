@@ -135,7 +135,3 @@
 @utility glass-card {
   @apply bg-card/40 backdrop-blur-lg border border-border shadow-xl;
 }
-
-@utility glow-text {
-  text-shadow: 0 0 20px var(--color-primary);
-}

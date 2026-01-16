@@ -65,7 +65,7 @@ export function ActivityFeed() {
             const Icon = item.icon
             return (
               <div key={i} className="flex gap-4">
-                <div className={`mt-0.5 rounded-full bg-background/50 p-1.5 ring-1 ring-border ${item.color}`}>
+                <div className={`mt-0.5 rounded-full bg-background/50 p-1.5 ring-1 ring-border h-7 w-7 ${item.color}`}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="space-y-1">

@@ -34,7 +34,7 @@ export default function AgentsPage() {
       <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight glow-text">Agents</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Agents</h2>
           <p className="text-muted-foreground mt-2">
             Configure and deploy your RAG assistants.
           </p>

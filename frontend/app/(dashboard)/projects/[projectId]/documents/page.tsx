@@ -7,7 +7,7 @@ export default function DocumentsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight glow-text">Documents</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Documents</h2>
         <p className="text-muted-foreground mt-2">
           Upload and manage your knowledge base.
         </p>
