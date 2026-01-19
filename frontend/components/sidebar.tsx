@@ -9,8 +9,18 @@ import {
   FolderOpen, 
   Settings, 
   CreditCard,
-  Bot
+  Bot,
+  LogOut
 } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const sidebarItems = [
   {
@@ -42,6 +52,7 @@ const sidebarItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { user, loading, logout } = useAuth()
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar-background text-sidebar-foreground">
@@ -75,13 +86,46 @@ export function AppSidebar() {
         </nav>
       </div>
       <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3 rounded-md bg-sidebar-accent p-3">
-          <div className="h-8 w-8 rounded-full bg-primary/20" />
-          <div className="text-sm">
-             <p className="font-medium">User</p>
-             <p className="text-xs text-muted-foreground">user@example.com</p>
-          </div>
-        </div>
+        {loading ? (
+           <div className="flex items-center gap-3 rounded-md bg-sidebar-accent p-3 animate-pulse">
+             <div className="h-8 w-8 rounded-full bg-primary/10" />
+             <div className="space-y-2">
+                <div className="h-3 w-20 bg-primary/10 rounded" />
+                <div className="h-2 w-32 bg-primary/10 rounded" />
+             </div>
+           </div>
+        ) : user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center gap-3 rounded-md bg-sidebar-accent p-3 cursor-pointer hover:bg-sidebar-accent/80 transition-colors">
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">
+                        {user.full_name?.charAt(0) || user.email.charAt(0).toUpperCase()}
+                    </span>
+                </div>
+                <div className="text-sm flex-1 min-w-0">
+                  <p className="font-medium truncate">{user.full_name || "User"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+                <LogOut className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="text-red-500 focus:text-red-500 cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+            <div className="p-3">
+                <Link href="/login" className="text-sm font-medium hover:underline">
+                    Sign in
+                </Link>
+            </div>
+        )}
       </div>
     </div>
   )
