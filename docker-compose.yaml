@@ -1,0 +1,80 @@
+services:
+  # PostgreSQL with pgvector extension
+  # PRD Reference: Infrastructure Layer Lines 85-86, 381-385
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: ragify-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ragify}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ragify_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ragify_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ragify}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Qdrant Vector Database
+  # PRD Reference: Infrastructure Layer Lines 86, 387-391
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ragify-qdrant
+    restart: always
+    ports:
+      - "6333:6333" # HTTP API
+      - "6334:6334" # gRPC API
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+  # Redis for Cache & Celery
+  # PRD Reference: Infrastructure Layer Lines 86, 393-398
+  redis:
+    image: redis:latest
+    container_name: ragify-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application Observability (LLM Tracing)
+  # PRD Reference: Observability Layer Lines 123, 435-444
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    container_name: ragify-phoenix
+    restart: always
+    ports:
+      - "6006:6006" # UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    environment:
+      - PHOENIX_PORT=6006
+
+  # Email Testing Service
+  # PRD Reference: External Services Layer Lines 116, 477
+  mailcatcher:
+    image: sj26/mailcatcher:latest
+    container_name: ragify-mailcatcher
+    restart: always
+    ports:
+      - "1080:1080" # Web UI
+      - "1025:1025" # SMTP
+    # mailcatcher image does not typically support healthcheck easily without curl/wget which might not be in the alpine/slim image
+    # keeping it simple
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  redis_data:
