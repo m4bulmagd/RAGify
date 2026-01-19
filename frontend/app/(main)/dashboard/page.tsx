@@ -1,8 +1,6 @@
 import { StatsGrid } from "@/components/dashboard/stats-grid"
-import { RecentProjects } from "@/components/dashboard/recent-projects"
+import { RecentProjects } from "@/components/projects/recent-projects"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
 
 export default function DashboardPage() {
   return (
@@ -14,9 +12,6 @@ export default function DashboardPage() {
             Overview of your RAG agents and knowledge bases.
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/50 text-primary-foreground border-primary/50">
-          <Plus className="mr-2 h-4 w-4" /> New Project
-        </Button>
       </div>
 
       <StatsGrid />

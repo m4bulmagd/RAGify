@@ -1,6 +1,5 @@
-import { RecentProjects } from "@/components/dashboard/recent-projects"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { CreateProjectDialog } from "@/components/projects/create-project-dialog"
+import { RecentProjects } from "@/components/projects/recent-projects"
 
 export default function ProjectsPage() {
   return (
@@ -12,9 +11,7 @@ export default function ProjectsPage() {
             Manage your RAG workspaces.
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/50 text-primary-foreground border-primary/50">
-          <Plus className="mr-2 h-4 w-4" /> New Project
-        </Button>
+        <CreateProjectDialog />
       </div>
       
       {/* Reusing RecentProjects component but in full width/list mode conceptually */}
