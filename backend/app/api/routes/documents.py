@@ -74,16 +74,20 @@ async def upload_document(
     document = Document(
         filename=file.filename,
         file_type=file.content_type or "application/octet-stream",
-        size=file.size or 0,  # file.size might be none if streamed?
-        status=DocumentStatus.COMPLETED,  # Mark ready immediately for now, usually PENDING then worker processes it
+        size=file.size or 0,
+        status=DocumentStatus.PENDING,
         url=s3_key,
         project_id=project_id,
-        # created_by=current_user.id # Model doesn't have created_by yet?
     )
 
     db.add(document)
     await db.commit()
     await db.refresh(document)
+
+    # Trigger background processing
+    from app.tasks import process_document
+
+    process_document.delay(document.id)
 
     return document
 
