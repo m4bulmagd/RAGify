@@ -88,6 +88,14 @@ class Settings(BaseSettings):
     # Phoenix
     PHOENIX_COLLECTOR_ENDPOINT: str
 
+    # S3 / MinIO
+    # S3 / MinIO
+    S3_ENDPOINT: str
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    S3_BUCKET_NAME: str
+    S3_REGION: str = "us-east-1"
+
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"),
         case_sensitive=True,
