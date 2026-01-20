@@ -8,6 +8,9 @@ from app.models.document import Document, DocumentStatus
 from app.models.user import User
 from sqlmodel import select
 
+from app.core.config import settings
+import magic
+
 router = APIRouter()
 
 
@@ -23,6 +26,25 @@ async def upload_document(
     Upload a document to S3 and register it in the database.
     """
     # Verify project access (TODO)
+
+    # Validate file size
+    if file.size and file.size > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"File size exceeds the limit of {settings.MAX_UPLOAD_SIZE} bytes",
+        )
+
+    # Validate file type using magic
+    await file.seek(0)
+    file_head = await file.read(2048)
+    mime_type = magic.from_buffer(file_head, mime=True)
+    await file.seek(0)
+
+    if mime_type not in settings.ALLOWED_UPLOAD_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file type: {mime_type}. Allowed types: ({', '.join([ t.split('/')[-1].upper() for t in settings.ALLOWED_UPLOAD_CONTENT_TYPES] )})",
+        )
 
     # Generate unique path
     file_ext = file.filename.split(".")[-1]

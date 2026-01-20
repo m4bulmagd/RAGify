@@ -46,7 +46,8 @@ export function useUploadDocument() {
       })
       
       if (!res.ok) {
-          throw new Error("Upload failed")
+          const errorData = await res.json().catch(() => ({}))
+          throw new Error(errorData.detail || "Upload failed")
       }
       return res.json()
     },
@@ -54,8 +55,8 @@ export function useUploadDocument() {
       queryClient.invalidateQueries({ queryKey: ["documents", variables.projectId] })
       toast.success(`Uploaded ${variables.file.name} successfully`)
     },
-    onError: (error) => {
-      toast.error("Failed to upload document")
+    onError: (error, variables) => {
+      toast.error(`Failed to upload ${variables.file.name}: ${error.message}`)
       console.error(error)
     },
   })

@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 
 import { useUploadDocument } from "@/hooks/use-documents"
 import { useParams } from "next/navigation"
+import { toast } from "sonner"
+import { number } from "zod"
 
 export function DocumentUploader({ projectId }: { projectId?: string }) {
   const [isDragging, setIsDragging] = React.useState(false)
@@ -53,8 +55,20 @@ export function DocumentUploader({ projectId }: { projectId?: string }) {
   const startUpload = async () => {
     if (!pid) return
     
+    // Client-side validation
+    const MAX_FILE_SIZE = Number(process.env.NEXT_PUBLIC_MAX_FILE_SIZE) * 1024 * 1024 // 10MB
+    const validFiles = files.filter(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`File ${file.name} is too large (max ${process.env.NEXT_PUBLIC_MAX_FILE_SIZE}MB)`)
+        return false
+      }
+      return true
+    })
+
+    if (validFiles.length === 0 && files.length > 0) return
+
     // Upload files sequentially or parallel
-    await Promise.all(files.map(async (file) => {
+    await Promise.allSettled(validFiles.map(async (file) => {
          await uploadDocument.mutateAsync({ projectId: pid, file })
     }))
     

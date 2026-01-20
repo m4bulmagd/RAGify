@@ -96,6 +96,29 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str
     S3_REGION: str = "us-east-1"
 
+    # File Upload
+    MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB default
+    ALLOWED_UPLOAD_CONTENT_TYPES: List[str] = [
+        "application/pdf",
+        "text/plain",
+        "text/markdown",
+        "text/csv",
+    ]
+
+    @field_validator("ALLOWED_UPLOAD_CONTENT_TYPES", mode="before")
+    def assemble_allowed_content_types(
+        cls, v: Union[str, List[str]]
+    ) -> List[str] | str:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, str) and v.startswith("["):
+            import json
+
+            return json.loads(v)
+        elif isinstance(v, list):
+            return v
+        raise ValueError(v)
+
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"),
         case_sensitive=True,
