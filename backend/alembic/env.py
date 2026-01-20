@@ -28,7 +28,14 @@ from app.models import (
     Project,
     Document,
     Chunk,
-)  # Import models to register them
+    Agent,
+    AgentLLMConfig,
+    AgentRetrievalConfig,
+    AgentDocument,
+    ChatSession,
+    ChatFeedback,
+    ChatMessage,
+)
 from app.core.config import settings
 
 # This is the target metadata

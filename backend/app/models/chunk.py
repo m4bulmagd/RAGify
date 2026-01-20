@@ -3,9 +3,13 @@ from uuid import UUID, uuid4
 from sqlmodel import Field, SQLModel, Relationship, Column
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import JSONB
+from datetime import datetime
+from app.utils.datetime import utc_now
+from sqlalchemy import TIMESTAMP, Column
 
 if TYPE_CHECKING:
     from .document import Document
+    from .chat import ChatContext
 
 
 class ChunkBase(SQLModel):
@@ -15,10 +19,22 @@ class ChunkBase(SQLModel):
 
 
 class Chunk(ChunkBase, table=True):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    document_id: UUID = Field(foreign_key="document.id")
+    """
+    Text chunk from a document with embeddings.
+    """
 
-    # 1536 is default for OpenAI text-embedding-3-small, adjust as needed
-    embedding: List[float] = Field(sa_column=Column(Vector(1536)))
+    __tablename__ = "chunks"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    document_id: UUID = Field(foreign_key="documents.id", index=True)
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False),
+    )
+
+    embedding: Optional[List[float]] = Field(
+        default=None, sa_column=Column(Vector(1536))
+    )
 
     document: "Document" = Relationship(back_populates="chunks")
+    chat_contexts: List["ChatContext"] = Relationship(back_populates="chunk")

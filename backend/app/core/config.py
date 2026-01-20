@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str  # Should be changed in production
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     ALGORITHM: str = "HS256"
+    SECURE_COOKIES: bool = True
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = []
