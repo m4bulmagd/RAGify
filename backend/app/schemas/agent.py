@@ -1,6 +1,6 @@
 # app/schemas/agent.py
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from app.models.agent import LLMProvider, AgentType
@@ -66,8 +66,7 @@ class AgentLLMConfigResponse(AgentLLMConfigBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AgentRetrievalConfigResponse(AgentRetrievalConfigBase):
@@ -76,8 +75,7 @@ class AgentRetrievalConfigResponse(AgentRetrievalConfigBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AgentResponse(AgentBase):
@@ -90,5 +88,4 @@ class AgentResponse(AgentBase):
     llm_config: Optional[AgentLLMConfigResponse] = None
     retrieval_config: Optional[AgentRetrievalConfigResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,30 +1,23 @@
 # app/api/routes/agents.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
-from typing import List
+from fastapi import APIRouter, HTTPException, status, Depends
+from typing import List, Optional
+from uuid import UUID
 
-from app.api import deps
+from app.api.deps import SessionDep, CurrentUser
 from app.crud.agent import agent_crud
 from app.schemas.agent import (
     AgentCreate,
-    AgentUpdate,
     AgentResponse,
     AgentLLMConfigUpdate,
-    AgentRetrievalConfigUpdate,
 )
-from app.models.user import User
-from uuid import UUID
 
 router = APIRouter()
 
 
 @router.post("/", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
-def create_agent(
-    *,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
-    agent_in: AgentCreate
+async def create_agent(
+    *, db: SessionDep, current_user: CurrentUser, agent_in: AgentCreate
 ):
     """Create new agent with configurations"""
 
@@ -40,7 +33,7 @@ def create_agent(
     # TODO: Verify user has access to documents
     # ... permission check ...
 
-    agent = agent_crud.create_with_configs(
+    agent = await agent_crud.create_with_configs(
         db=db,
         agent_data={
             "name": agent_in.name,
@@ -57,40 +50,61 @@ def create_agent(
     return agent
 
 
+@router.get("/", response_model=List[AgentResponse])
+async def get_agents(
+    db: SessionDep,
+    current_user: CurrentUser,
+    project_id: Optional[UUID] = None,
+    skip: int = 0,
+    limit: int = 100,
+):
+    """
+    Retrieve agents.
+    """
+    # TODO: Add granular permissions
+
+    if project_id:
+        agents = await agent_crud.get_multi_by_project(
+            db, project_id=project_id, skip=skip, limit=limit
+        )
+    else:
+        # Get all agents
+        agents = await agent_crud.get_multi(db, skip=skip, limit=limit)
+
+    return agents
+
+
 @router.get("/{agent_id}", response_model=AgentResponse)
-def get_agent(
+async def get_agent(
     agent_id: UUID,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
+    db: SessionDep,
+    current_user: CurrentUser,
 ):
     """Get agent by ID with all configurations"""
 
     # TODO: Verify user has access to agent
     # ... permission check ...
 
-    agent = agent_crud.get_with_configs(db, agent_id)
+    agent = await agent_crud.get_with_configs(db, agent_id)
 
     if not agent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found"
         )
 
-    # Check permissions
-    # ...
-
     return agent
 
 
 @router.patch("/{agent_id}/llm-config", response_model=AgentResponse)
-def update_llm_config(
+async def update_llm_config(
     agent_id: UUID,
     config_update: AgentLLMConfigUpdate,
-    db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user),
+    db: SessionDep,
+    current_user: CurrentUser,
 ):
     """Update LLM configuration for agent"""
 
-    updated_config = agent_crud.update_llm_config(
+    updated_config = await agent_crud.update_llm_config(
         db=db,
         agent_id=agent_id,
         config_data=config_update.model_dump(exclude_unset=True),
@@ -101,4 +115,4 @@ def update_llm_config(
             status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found"
         )
 
-    return agent_crud.get_with_configs(db, agent_id)
+    return await agent_crud.get_with_configs(db, agent_id)
