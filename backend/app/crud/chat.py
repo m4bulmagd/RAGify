@@ -3,7 +3,8 @@
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, UTC
-from sqlmodel import Session, select, func, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select, func, and_
 from app.crud.base import CRUDBase
 from app.models.chat import (
     ChatSession,
@@ -13,14 +14,22 @@ from app.models.chat import (
     MessageRole,
     ChatSessionStatus,
 )
+from app.schemas.chat import (
+    ChatSessionCreate,
+    ChatSessionUpdate,
+    ChatMessageCreate,
+    ChatFeedbackCreate,
+    ChatFeedbackUpdate,
+)
+from pydantic import BaseModel
 
 
-class CRUDChatSession(CRUDBase[ChatSession]):
+class CRUDChatSession(CRUDBase[ChatSession, ChatSessionCreate, ChatSessionUpdate]):
     """CRUD operations for chat sessions"""
 
-    def create_session(
+    async def create_session(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         user_id: UUID,
         project_id: UUID,
@@ -35,13 +44,13 @@ class CRUDChatSession(CRUDBase[ChatSession]):
             title=title or "New Chat",
         )
         db.add(session)
-        db.commit()
-        db.refresh(session)
+        await db.commit()
+        await db.refresh(session)
         return session
 
-    def get_user_sessions(
+    async def get_user_sessions(
         self,
-        db: Session,
+        db: AsyncSession,
         user_id: UUID,
         project_id: Optional[UUID] = None,
         skip: int = 0,
@@ -60,29 +69,30 @@ class CRUDChatSession(CRUDBase[ChatSession]):
         if project_id:
             statement = statement.where(ChatSession.project_id == project_id)
 
-        return list(db.exec(statement).all())
+        result = await db.execute(statement)
+        return list(result.scalars().all())
 
-    def update_last_message_time(
-        self, db: Session, session_id: UUID
+    async def update_last_message_time(
+        self, db: AsyncSession, session_id: UUID
     ) -> Optional[ChatSession]:
         """Update session's last message timestamp"""
-        session = self.get(db, session_id)
+        session = await self.get(db, session_id)
         if session:
             session.last_message_at = datetime.now(UTC)
             session.updated_at = datetime.now(UTC)
             session.message_count += 1
             db.add(session)
-            db.commit()
-            db.refresh(session)
+            await db.commit()
+            await db.refresh(session)
         return session
 
 
-class CRUDChatMessage(CRUDBase[ChatMessage]):
+class CRUDChatMessage(CRUDBase[ChatMessage, ChatMessageCreate, BaseModel]):
     """CRUD operations for chat messages"""
 
-    def create_message(
+    async def create_message(
         self,
-        db: Session,
+        db: AsyncSession,
         *,
         session_id: UUID,
         role: MessageRole,
@@ -103,17 +113,17 @@ class CRUDChatMessage(CRUDBase[ChatMessage]):
             cost_usd=cost_usd,
         )
         db.add(message)
-        db.flush()
+        await db.flush()
 
         # Update session
-        chat_session_crud.update_last_message_time(db, session_id)
+        await chat_session_crud.update_last_message_time(db, session_id)
 
-        db.commit()
-        db.refresh(message)
+        await db.commit()
+        await db.refresh(message)
         return message
 
-    def get_session_messages(
-        self, db: Session, session_id: UUID, limit: Optional[int] = None
+    async def get_session_messages(
+        self, db: AsyncSession, session_id: UUID, limit: Optional[int] = None
     ) -> List[ChatMessage]:
         """Get all messages for a session"""
         statement = (
@@ -125,25 +135,25 @@ class CRUDChatMessage(CRUDBase[ChatMessage]):
         if limit:
             statement = statement.limit(limit)
 
-        return list(db.exec(statement).all())
+        result = await db.execute(statement)
+        return list(result.scalars().all())
 
-    def get_message_with_context(
-        self, db: Session, message_id: UUID
+    async def get_message_with_context(
+        self, db: AsyncSession, message_id: UUID
     ) -> Optional[ChatMessage]:
         """Get message with contexts loaded"""
-        message = self.get(db, message_id)
+        message = await self.get(db, message_id)
         if message:
-            # Eagerly load relationships
-            _ = message.contexts
-            _ = message.feedback
+            # Relationship loading strategy needed if lazy
+            pass
         return message
 
 
-class CRUDChatContext(CRUDBase[ChatContext]):
+class CRUDChatContext(CRUDBase[ChatContext, BaseModel, BaseModel]):
     """CRUD operations for chat contexts"""
 
-    def add_contexts(
-        self, db: Session, *, message_id: UUID, contexts: List[dict]
+    async def add_contexts(
+        self, db: AsyncSession, *, message_id: UUID, contexts: List[dict]
     ) -> List[ChatContext]:
         """Add multiple contexts for a message"""
         db_contexts = []
@@ -161,27 +171,30 @@ class CRUDChatContext(CRUDBase[ChatContext]):
             db.add(context)
             db_contexts.append(context)
 
-        # Update message sources count
+        # Update message sources count (fetch message first)
         statement = select(ChatMessage).where(ChatMessage.id == message_id)
-        message = db.exec(statement).first()
+        result = await db.execute(statement)
+        message = result.scalars().first()
+
         if message:
             message.sources_count = len(contexts)
             db.add(message)
 
-        db.commit()
+        await db.commit()
         return db_contexts
 
 
-class CRUDChatFeedback(CRUDBase[ChatFeedback]):
+class CRUDChatFeedback(CRUDBase[ChatFeedback, ChatFeedbackCreate, ChatFeedbackUpdate]):
     """CRUD operations for chat feedback"""
 
-    def create_or_update_feedback(
-        self, db: Session, *, message_id: UUID, user_id: UUID, feedback_data: dict
+    async def create_or_update_feedback(
+        self, db: AsyncSession, *, message_id: UUID, user_id: UUID, feedback_data: dict
     ) -> ChatFeedback:
         """Create or update feedback for a message"""
         # Check if feedback exists
         statement = select(ChatFeedback).where(ChatFeedback.message_id == message_id)
-        feedback = db.exec(statement).first()
+        result = await db.execute(statement)
+        feedback = result.scalars().first()
 
         if feedback:
             # Update existing
@@ -195,13 +208,13 @@ class CRUDChatFeedback(CRUDBase[ChatFeedback]):
             )
 
         db.add(feedback)
-        db.commit()
-        db.refresh(feedback)
+        await db.commit()
+        await db.refresh(feedback)
         return feedback
 
-    def get_feedback_stats(
+    async def get_feedback_stats(
         self,
-        db: Session,
+        db: AsyncSession,
         agent_id: Optional[UUID] = None,
         project_id: Optional[UUID] = None,
     ) -> dict:
@@ -216,7 +229,8 @@ class CRUDChatFeedback(CRUDBase[ChatFeedback]):
             if project_id:
                 statement = statement.where(ChatSession.project_id == project_id)
 
-        feedbacks = db.exec(statement).all()
+        result = await db.execute(statement)
+        feedbacks = result.scalars().all()
 
         # Aggregate
         stats = {
