@@ -8,9 +8,46 @@ import { ProjectDocuments } from "@/components/projects/project-documents"
 import { ProjectAgents } from "@/components/projects/project-agents"
 import { useParams } from "next/navigation"
 
+import { useProjectStats } from "@/hooks/use-project-stats"
+import { Skeleton } from "@/components/ui/skeleton"
+
+function ProjectStatsDisplay() {
+    const { data: stats, isLoading } = useProjectStats()
+
+    if (isLoading) {
+        return (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                 {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-24 rounded-xl" />
+                 ))}
+            </div>
+        )
+    }
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                <div className="text-2xl font-bold">{stats?.total_documents || 0}</div>
+                <p className="text-xs text-muted-foreground">Total Documents</p>
+                </div>
+                <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                <div className="text-2xl font-bold">{stats?.active_agents || 0}</div>
+                <p className="text-xs text-muted-foreground">Active Agents</p>
+                </div>
+                <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                <div className="text-2xl font-bold">{stats?.total_chunks || 0}</div>
+                <p className="text-xs text-muted-foreground">Total Vector Chunks</p>
+                </div>
+                <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                <div className="text-2xl font-bold">{(stats?.avg_retrieval_score || 0).toFixed(1)}%</div>
+                <p className="text-xs text-muted-foreground">Avg. Retrieval Score</p>
+                </div>
+        </div>
+    )
+}
+
 export default function ProjectPage() {
     const params = useParams()
-    console.log(params)
     const projectId = params.projectId as string
 
   return (
@@ -47,24 +84,7 @@ export default function ProjectPage() {
         </TabsList>
         
         <TabsContent value="overview" className="mt-6 space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
-                    <div className="text-2xl font-bold">145</div>
-                    <p className="text-xs text-muted-foreground">Total Documents</p>
-                 </div>
-                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
-                    <div className="text-2xl font-bold">3</div>
-                    <p className="text-xs text-muted-foreground">Active Agents</p>
-                 </div>
-                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
-                    <div className="text-2xl font-bold">1,234</div>
-                    <p className="text-xs text-muted-foreground">Total Vector Chunks</p>
-                 </div>
-                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
-                    <div className="text-2xl font-bold">89%</div>
-                    <p className="text-xs text-muted-foreground">Avg. Retrieval Score</p>
-                 </div>
-            </div>
+            <ProjectStatsDisplay />
             {/* Recent Activity or other widgets could go here */}
         </TabsContent>
 
