@@ -1,71 +1,81 @@
-import { Button } from "@/components/ui/button"
-import { ArrowRight, FileText, Bot, Settings } from "lucide-react"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+"use client"
 
-export default function ProjectPage({ params }: { params: { projectId: string } }) {
+import { Button } from "@/components/ui/button"
+import { Settings, ArrowLeft } from "lucide-react"
+import Link from "next/link"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ProjectDocuments } from "@/components/projects/project-documents"
+import { ProjectAgents } from "@/components/projects/project-agents"
+import { useParams } from "next/navigation"
+
+export default function ProjectPage() {
+    const params = useParams()
+    console.log(params)
+    const projectId = params.projectId as string
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
+           <div className="flex items-center gap-2 mb-2">
+                <Button variant="ghost" size="sm" asChild className="-ml-3 text-muted-foreground">
+                    <Link href="/projects">
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
+                    </Link>
+                </Button>
+           </div>
           <h2 className="text-3xl font-bold tracking-tight">Legal Contract Analysis</h2>
           <p className="text-muted-foreground mt-2">
-            Project configuration and quick actions.
+            Project configuration and knowledge base. 
+            {/* TODO: Fetch real project name */}
           </p>
         </div>
-        <Button variant="outline">
-          <Settings className="mr-2 h-4 w-4" /> Project Settings
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline">
+            <Settings className="mr-2 h-4 w-4" /> Settings
+            </Button>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
-          <CardHeader>
-            <div className="mb-2 rounded-md bg-primary/10 w-fit p-3 group-hover:bg-primary/20 transition-colors">
-              <FileText className="h-6 w-6 text-primary" />
+        {/* Main Content Tabs */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 lg:w-100">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="documents">Knowledge Base</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="mt-6 space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                    <div className="text-2xl font-bold">145</div>
+                    <p className="text-xs text-muted-foreground">Total Documents</p>
+                 </div>
+                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                    <div className="text-2xl font-bold">3</div>
+                    <p className="text-xs text-muted-foreground">Active Agents</p>
+                 </div>
+                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                    <div className="text-2xl font-bold">1,234</div>
+                    <p className="text-xs text-muted-foreground">Total Vector Chunks</p>
+                 </div>
+                 <div className="rounded-xl border bg-card text-card-foreground shadow p-6">
+                    <div className="text-2xl font-bold">89%</div>
+                    <p className="text-xs text-muted-foreground">Avg. Retrieval Score</p>
+                 </div>
             </div>
-            <CardTitle>Knowledge Base</CardTitle>
-            <CardDescription>
-              Manage documents and embeddings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <div className="text-2xl font-bold">145</div>
-              <p className="text-xs text-muted-foreground">Documents indexed</p>
-            </div>
-            <Button className="w-full" asChild>
-              <Link href={`./${params.projectId}/documents`}> 
-                {/* Note: In Next.js App Router dynamic routes, basic relative links can be tricky, but standard link works. I'll use relative for now or build path. */}
-                Manage Documents <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+            {/* Recent Activity or other widgets could go here */}
+        </TabsContent>
 
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer group">
-          <CardHeader>
-            <div className="mb-2 rounded-md bg-purple-500/10 w-fit p-3 group-hover:bg-purple-500/20 transition-colors">
-              <Bot className="h-6 w-6 text-purple-500" />
-            </div>
-            <CardTitle>Agents</CardTitle>
-            <CardDescription>
-              Configure retrieval agents.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">Active agents</p>
-            </div>
-            <Button className="w-full" variant="secondary" asChild>
-              <Link href={`./${params.projectId}/agents`}>
-                Manage Agents <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="documents" className="mt-6">
+            <ProjectDocuments projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="agents" className="mt-6">
+            <ProjectAgents projectId={projectId} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -1,5 +1,7 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
 import Link from "next/link"
 import { ArrowRight, MoreHorizontal, Trash2 } from "lucide-react"
 
@@ -28,6 +30,7 @@ import { Project } from "@/hooks/use-projects"
 
 export function RecentProjects() {
   const { projects, isLoading, deleteProject } = useProjects()
+  const router = useRouter()
   const [editingProject, setEditingProject] = useState<Project | null>(null)
 
   if (isLoading) {
@@ -84,7 +87,8 @@ export function RecentProjects() {
             {displayProjects.map((project) => (
               <div
                 key={project.id}
-                className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4 transition-all hover:bg-muted/50"
+                onClick={() => router.push(`/projects/${project.id}`)}
+                className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-4 transition-all hover:bg-muted/50 cursor-pointer"
               >
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
@@ -97,7 +101,7 @@ export function RecentProjects() {
                     {project.description || "No description"}
                   </span>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -105,7 +109,9 @@ export function RecentProjects() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>View Project</DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                          <Link href={`/projects/${project.id}`}>View Project</Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditingProject(project)}>
                         Settings
                       </DropdownMenuItem>

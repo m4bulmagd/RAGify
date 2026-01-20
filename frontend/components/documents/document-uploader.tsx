@@ -6,11 +6,20 @@ import { cn } from "@/lib/utils"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 
-export function DocumentUploader() {
+
+import { useUploadDocument } from "@/hooks/use-documents"
+import { useParams } from "next/navigation"
+
+export function DocumentUploader({ projectId }: { projectId?: string }) {
   const [isDragging, setIsDragging] = React.useState(false)
   const [files, setFiles] = React.useState<File[]>([])
-  const [uploading, setUploading] = React.useState(false)
-  const [progress, setProgress] = React.useState(0)
+  
+  const params = useParams()
+  const pid = projectId || (params.projectId as string)
+  
+  const uploadDocument = useUploadDocument()
+  const uploading = uploadDocument.isPending
+  const [progress, setProgress] = React.useState(0) // Mock progress for now, or XHR logic if deeply integrated.
 
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -41,20 +50,16 @@ export function DocumentUploader() {
     setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const startUpload = () => {
-    setUploading(true)
-    // Simulate upload
-    let p = 0
-    const interval = setInterval(() => {
-      p += 10
-      setProgress(p)
-      if (p >= 100) {
-        clearInterval(interval)
-        setUploading(false)
-        setFiles([])
-        setProgress(0)
-      }
-    }, 200)
+  const startUpload = async () => {
+    if (!pid) return
+    
+    // Upload files sequentially or parallel
+    await Promise.all(files.map(async (file) => {
+         await uploadDocument.mutateAsync({ projectId: pid, file })
+    }))
+    
+    setFiles([])
+    setProgress(0)
   }
 
   return (
