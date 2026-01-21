@@ -103,6 +103,42 @@ services:
       exit 0;
       "
 
+  # Celery Worker for Document Processing
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ragify-celery-worker
+    command: uv run celery -A app.core.celery_app worker --loglevel=info -Q default,ingestion,embeddings
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-ragify}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ragify_password}
+      - POSTGRES_DB=${POSTGRES_DB:-ragify_db}
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - S3_BUCKET_NAME=${MINIO_BUCKET_NAME:-ragify-documents}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:4317
+      - PROJECT_NAME=RAGify
+      - VERSION=0.1.0
+      - API_V1_STR=/api/v1
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    volumes:
+      - ./backend:/app
+      - /app/.venv
+    restart: always
+
+
 volumes:
   postgres_data:
   qdrant_data:
