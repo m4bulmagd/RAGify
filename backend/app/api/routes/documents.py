@@ -63,12 +63,14 @@ async def upload_document(
 
     loop = asyncio.get_event_loop()
 
-    success = await loop.run_in_executor(
-        None, lambda: s3_client.upload_file(file.file, s3_key, file.content_type)
-    )
-
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to upload file to storage")
+    try:
+        await loop.run_in_executor(
+            None, lambda: s3_client.upload_file(file.file, s3_key, file.content_type)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to upload file to storage: {str(e)}"
+        )
 
     # Create Database Entry
     document = Document(
@@ -84,10 +86,11 @@ async def upload_document(
     await db.commit()
     await db.refresh(document)
 
-    # Trigger background processing
-    from app.tasks import process_document
+    # Trigger background document processing
+    from app.workers.document_ingestion import process_document
 
-    process_document.delay(document.id)
+    print(f"DEBUG: Celery Broker URL: {process_document.app.conf.broker_url}")
+    process_document.delay(str(document.id))
 
     return document
 

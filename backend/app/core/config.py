@@ -38,21 +38,20 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int
     DATABASE_URI: Union[str, None] = None
 
-    @field_validator("DATABASE_URI", mode="before")
+    @field_validator("DATABASE_URI", mode="after")
     def assemble_db_connection(cls, v: Union[str, None], info) -> str:
         if isinstance(v, str):
             return v
 
-        values = info.data
         # Build Postgres DSN
         return str(
             PostgresDsn.build(
                 scheme="postgresql+asyncpg",
-                username=values.get("POSTGRES_USER"),
-                password=values.get("POSTGRES_PASSWORD"),
-                host=values.get("POSTGRES_SERVER"),
-                port=values.get("POSTGRES_PORT"),
-                path=f"{values.get('POSTGRES_DB') or ''}",
+                username=info.data.get("POSTGRES_USER"),
+                password=info.data.get("POSTGRES_PASSWORD"),
+                host=info.data.get("POSTGRES_SERVER"),
+                port=info.data.get("POSTGRES_PORT"),
+                path=f"{info.data.get('POSTGRES_DB') or ''}",
             )
         )
 
@@ -61,12 +60,11 @@ class Settings(BaseSettings):
     REDIS_PORT: int
     REDIS_URL: Union[str, None] = None
 
-    @field_validator("REDIS_URL", mode="before")
+    @field_validator("REDIS_URL", mode="after")
     def assemble_redis_url(cls, v: Union[str, None], info) -> str:
         if isinstance(v, str):
             return v
-        values = info.data
-        return f"redis://{values.get('REDIS_HOST')}:{values.get('REDIS_PORT')}/0"
+        return f"redis://{info.data.get('REDIS_HOST')}:{info.data.get('REDIS_PORT')}/0"
 
     # Qdrant
     QDRANT_HOST: str
@@ -74,12 +72,11 @@ class Settings(BaseSettings):
     QDRANT_URL: Union[str, None] = None
     QDRANT_API_KEY: Union[str, None] = None
 
-    @field_validator("QDRANT_URL", mode="before")
+    @field_validator("QDRANT_URL", mode="after")
     def assemble_qdrant_url(cls, v: Union[str, None], info) -> str:
         if isinstance(v, str):
             return v
-        values = info.data
-        return f"http://{values.get('QDRANT_HOST')}:{values.get('QDRANT_PORT')}"
+        return f"http://{info.data.get('QDRANT_HOST')}:{info.data.get('QDRANT_PORT')}"
 
     # External APIs
     OPENAI_API_KEY: Union[str, None] = None

@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.api.main import api_router
 from contextlib import asynccontextmanager
 from app.core.db import init_db
+import app.core.celery_app  # Ensure Celery app is loaded
 
 
 @asynccontextmanager

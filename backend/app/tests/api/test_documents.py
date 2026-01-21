@@ -41,17 +41,10 @@ async def test_upload_document_valid(client: AsyncClient):
     # Upload valid file
     files = {"file": ("test.txt", b"Hello World", "text/plain")}
 
-    with patch("app.api.routes.documents.s3_client") as mock_s3:
-        mock_s3.upload_file.return_value = True
-        # Actually our code expects nothing returned or handles exception?
-        # Code: success = await ...; if not success: ...
-        # Wait, s3_client.upload_file returns None on success, raises on error.
-        # But the code says: `success = await loop.run_in_executor(...)`
-        # `loop.run_in_executor` returns the result of the function.
-        # `upload_file` returns None.
-        # Code check: `if not success:` -> None is falsy!
-        # This means the current code might be BUGGY if it expects True.
-        # Let's re-verify the code in documents.py!
+    with patch("app.api.routes.documents.s3_client") as mock_s3, patch(
+        "app.workers.document_ingestion.process_document.delay"
+    ) as mock_delay:
+        mock_s3.upload_file.return_value = None  # boto3 returns None on success
 
         response = await client.post(
             f"{settings.API_V1_STR}/documents/",
@@ -60,25 +53,14 @@ async def test_upload_document_valid(client: AsyncClient):
             headers=headers,
         )
 
-    # If the code is buggy (checking `if not success` on None return from upload_file),
-    # then this test might fail with 500.
-    # Current code:
-    # success = await loop.run_in_executor(...)
-    # if not success: raise HTTPException...
-    # boto3 upload_file returns None.
-    # So `success` will be None. `not None` is True.
-    # So it raises 500!
+    assert response.status_code == 201
+    data = response.json()
+    assert data["filename"] == "test.txt"
+    assert data["status"] == "pending"
+    assert data["project_id"] == project_id
 
-    # I MUST FIX THE BUG IN documents.py first!
-    # But let's write the test validation logic first.
-    # I'll handle the bug fix in the next step or same step if I can catch it.
-
-    # For now, let's assume I fix existing bug or it works differently.
-    # Ah, maybe s3_client is wrapped?
-    # `from app.core.storage import s3_client`
-    # If it's raw boto3 client, upload_file returns None.
-
-    pass
+    # Check if worker was called
+    mock_delay.assert_called_once()
 
 
 @pytest.mark.asyncio

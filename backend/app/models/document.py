@@ -25,6 +25,7 @@ class DocumentBase(SQLModel):
     status: DocumentStatus = Field(default=DocumentStatus.PENDING)
     error_message: Optional[str] = None
     url: Optional[str] = None  # Path to file on disk or S3 URL
+    content_hash: Optional[str] = Field(default=None, index=True)
 
 
 class Document(DocumentBase, table=True):

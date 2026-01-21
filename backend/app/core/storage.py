@@ -42,5 +42,14 @@ class S3Client:
             return None
         return response
 
+    def download_file(self, object_name: str, local_path: str) -> bool:
+        """Download a file from S3 to local path"""
+        try:
+            self.s3.download_file(self.bucket, object_name, local_path)
+        except ClientError as e:
+            print(f"S3 Download Error: {e}")
+            return False
+        return True
+
 
 s3_client = S3Client()
