@@ -50,15 +50,6 @@ async def upload_document(
     file_ext = file.filename.split(".")[-1]
     s3_key = f"{project_id}/{file.filename}"
 
-    # Upload to S3
-    # Note: upload_fileobj is sync, so we wrap it or just run it.
-    # For large files, better to run in threadpool or use aiobotocore.
-    # FastAPI runs def endpoints in threadpool, async def in event loop.
-    # Since we defined this as async def, we should ideally await s3 upload in threadpool
-    # OR change s3_client to use aiobotocore.
-    # For MVP simplicity, we'll assume blocking is okay-ish or rely on fast MinIO.
-    # BETTER: Use run_in_executor
-
     import asyncio
 
     loop = asyncio.get_event_loop()
@@ -89,7 +80,6 @@ async def upload_document(
     # Trigger background document processing
     from app.workers.document_ingestion import process_document
 
-    print(f"DEBUG: Celery Broker URL: {process_document.app.conf.broker_url}")
     process_document.delay(str(document.id))
 
     return document

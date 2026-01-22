@@ -33,7 +33,7 @@ def generate_embeddings_batch(self, chunk_ids: List[int]) -> dict:
     from app.core.db import get_sync_session
     from app.models.chunk import Chunk
     from app.models.document import Document, DocumentStatus
-    from app.services.processing.embedding_service import EmbeddingService
+    from app.factories.embedding_factory import EmbeddingFactory
     from app.vectorstores.qdrant_store import QdrantStore
     from sqlmodel import select
 
@@ -50,8 +50,9 @@ def generate_embeddings_batch(self, chunk_ids: List[int]) -> dict:
             return {"status": "error", "message": "No chunks found"}
 
         try:
+            # TODO: Make embedding provider configurable
             # Initialize services
-            embedding_service = EmbeddingService()
+            embedding_provider = EmbeddingFactory.create("gemini")
             qdrant_store = QdrantStore()
 
             # Get document for project context
@@ -61,7 +62,7 @@ def generate_embeddings_batch(self, chunk_ids: List[int]) -> dict:
 
             # Generate embeddings
             texts = [chunk.text for chunk in chunks]
-            embeddings = embedding_service.generate_embeddings(texts)
+            embeddings = embedding_provider.embed_documents(texts)
 
             # Save to PostgreSQL (pgvector)
             for chunk, embedding in zip(chunks, embeddings):

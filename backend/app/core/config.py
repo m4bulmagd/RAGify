@@ -80,7 +80,8 @@ class Settings(BaseSettings):
 
     # External APIs
     OPENAI_API_KEY: Union[str, None] = None
-    ANTHROPIC_API_KEY: Union[str, None] = None
+    GOOGLE_API_KEY: Union[str, None] = None
+    COHERE_API_KEY: Union[str, None] = None
 
     # Phoenix
     PHOENIX_COLLECTOR_ENDPOINT: str
