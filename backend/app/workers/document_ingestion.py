@@ -66,8 +66,8 @@ def process_document(self, document_id: str) -> dict:
             ingestion_service = IngestionService()
 
             # Step 2: Parse, clean, chunk
-            chunks_data = ingestion_service.process_document(document, session)
-
+            result = ingestion_service.process_document(document, session)
+            chunks_data = result.chunks
             if not chunks_data:
                 logger.warning(f"No chunks generated for document {document_id}")
                 document.status = DocumentStatus.COMPLETED
@@ -87,10 +87,10 @@ def process_document(self, document_id: str) -> dict:
                 return {"status": "completed", "chunks": 0}
 
             # Step 3: Dispatch embedding generation
-            from app.workers.embedding_generation import generate_embeddings_batch
+            from app.workers.embedding_generation import generate_chunks_embeddings
 
             chunk_ids = [chunk.id for chunk in chunks_data]
-            generate_embeddings_batch.delay(chunk_ids)
+            generate_chunks_embeddings.delay(chunk_ids)
 
             logger.info(
                 f"Document {document_id} parsed, {len(chunks_data)} chunks created"
