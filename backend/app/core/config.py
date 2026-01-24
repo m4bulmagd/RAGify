@@ -117,6 +117,49 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
 
+    # Vector Database (pgvector) Configuration
+    # Index type: "hnsw" (default, better query performance) or "ivfflat" (faster build)
+    VECTOR_INDEX_TYPE: str = "hnsw"
+    # Distance metric: "cosine" (default), "l2", or "inner_product"
+    VECTOR_DISTANCE_METRIC: str = "cosine"
+    # Embedding dimensions (should match your embedding model output)
+    VECTOR_EMBEDDING_DIMENSIONS: int = 1536
+
+    # HNSW index parameters
+    VECTOR_HNSW_M: int = 16  # Max connections per node (2-100)
+    VECTOR_HNSW_EF_CONSTRUCTION: int = 64  # Dynamic candidate list size (4-1000)
+
+    # IVFFlat index parameters
+    VECTOR_IVFFLAT_LISTS: int = 100  # Number of inverted lists (1-10000)
+
+
+def get_vector_config():
+    """
+    Get VectorConfig instance from current settings.
+
+    Returns a configured VectorConfig object based on environment variables.
+    """
+    from app.core.vector_config import (
+        VectorConfig,
+        VectorIndexType,
+        DistanceMetric,
+        HNSWConfig,
+        IVFFlatConfig,
+    )
+
+    return VectorConfig(
+        index_type=VectorIndexType(settings.VECTOR_INDEX_TYPE),
+        distance_metric=DistanceMetric(settings.VECTOR_DISTANCE_METRIC),
+        embedding_dimensions=settings.VECTOR_EMBEDDING_DIMENSIONS,
+        hnsw=HNSWConfig(
+            m=settings.VECTOR_HNSW_M,
+            ef_construction=settings.VECTOR_HNSW_EF_CONSTRUCTION,
+        ),
+        ivfflat=IVFFlatConfig(
+            lists=settings.VECTOR_IVFFLAT_LISTS,
+        ),
+    )
+
     model_config = SettingsConfigDict(
         env_file=(".env", ".env.local"),
         case_sensitive=True,
