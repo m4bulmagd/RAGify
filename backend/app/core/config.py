@@ -66,17 +66,17 @@ class Settings(BaseSettings):
             return v
         return f"redis://{info.data.get('REDIS_HOST')}:{info.data.get('REDIS_PORT')}/0"
 
-    # Qdrant
-    QDRANT_HOST: str
-    QDRANT_PORT: int
-    QDRANT_URL: Union[str, None] = None
-    QDRANT_API_KEY: Union[str, None] = None
-
-    @field_validator("QDRANT_URL", mode="after")
-    def assemble_qdrant_url(cls, v: Union[str, None], info) -> str:
-        if isinstance(v, str):
-            return v
-        return f"http://{info.data.get('QDRANT_HOST')}:{info.data.get('QDRANT_PORT')}"
+    # # Qdrant
+    # QDRANT_HOST: str
+    # QDRANT_PORT: int
+    # QDRANT_URL: Union[str, None] = None
+    # QDRANT_API_KEY: Union[str, None] = None
+    #
+    # @field_validator("QDRANT_URL", mode="after")
+    # def assemble_qdrant_url(cls, v: Union[str, None], info) -> str:
+    #     if isinstance(v, str):
+    #         return v
+    #     return f"http://{info.data.get('QDRANT_HOST')}:{info.data.get('QDRANT_PORT')}"
 
     # External APIs
     OPENAI_API_KEY: Union[str, None] = None
