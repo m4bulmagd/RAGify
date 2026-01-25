@@ -40,7 +40,6 @@ export function DocumentList({ projectId }: { projectId?: string }) {
               <TableHead>Status</TableHead>
               <TableHead>Chunks</TableHead>
               <TableHead>Size</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -79,13 +78,8 @@ export function DocumentList({ projectId }: { projectId?: string }) {
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell>{doc.chunks ? doc.chunks.length : "-"}</TableCell>
+                <TableCell>{doc.chunk_count > 0 ? doc.chunk_count : "-"}</TableCell>
                 <TableCell className="text-muted-foreground">{(doc.size / 1024 / 1024).toFixed(2)} MB</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </TableCell>
               </TableRow>
             ))
             )}

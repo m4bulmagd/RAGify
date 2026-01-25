@@ -5,8 +5,10 @@ from uuid import UUID
 from app.api import deps
 from app.core.storage import s3_client
 from app.models.document import Document, DocumentStatus
+from app.models.chunk import Chunk
 from app.models.user import User
-from sqlmodel import select
+from app.schemas.document import DocumentWithChunkCount
+from sqlmodel import select, func
 
 from app.core.config import settings
 import magic
@@ -85,7 +87,7 @@ async def upload_document(
     return document
 
 
-@router.get("/", response_model=List[Document])
+@router.get("/", response_model=List[DocumentWithChunkCount])
 async def get_documents(
     *,
     db: deps.SessionDep,
@@ -95,14 +97,43 @@ async def get_documents(
     limit: int = 100,
 ) -> Any:
     """
-    List documents for a project.
+    List documents for a project with chunk counts.
     """
+    # Subquery to count chunks per document
+    chunk_count_subq = (
+        select(func.count(Chunk.id))
+        .where(Chunk.document_id == Document.id)
+        .correlate(Document)
+        .scalar_subquery()
+        .label("chunk_count")
+    )
+
     statement = (
-        select(Document)
+        select(Document, chunk_count_subq)
         .where(Document.project_id == project_id)
         .offset(skip)
         .limit(limit)
         .order_by(Document.created_at.desc())
     )
     result = await db.execute(statement)
-    return result.scalars().all()
+    rows = result.all()
+
+    # Construct response objects
+    documents_with_counts = []
+    for doc, chunk_count in rows:
+        doc_dict = {
+            "id": doc.id,
+            "filename": doc.filename,
+            "file_type": doc.file_type,
+            "size": doc.size,
+            "status": doc.status,
+            "error_message": doc.error_message,
+            "url": doc.url,
+            "content_hash": doc.content_hash,
+            "project_id": doc.project_id,
+            "created_at": doc.created_at,
+            "updated_at": doc.updated_at,
+            "chunk_count": chunk_count or 0,
+        }
+        documents_with_counts.append(DocumentWithChunkCount(**doc_dict))
+    return documents_with_counts

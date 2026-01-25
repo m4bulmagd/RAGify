@@ -132,6 +132,16 @@ class Settings(BaseSettings):
     # IVFFlat index parameters
     VECTOR_IVFFLAT_LISTS: int = 100  # Number of inverted lists (1-10000)
 
+    model_config = SettingsConfigDict(
+        env_file=(".env", ".env.local"),
+        case_sensitive=True,
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+settings = Settings()
+
 
 def get_vector_config():
     """
@@ -159,13 +169,3 @@ def get_vector_config():
             lists=settings.VECTOR_IVFFLAT_LISTS,
         ),
     )
-
-    model_config = SettingsConfigDict(
-        env_file=(".env", ".env.local"),
-        case_sensitive=True,
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
-
-
-settings = Settings()

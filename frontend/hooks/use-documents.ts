@@ -11,7 +11,7 @@ export type Document = {
   status: "pending" | "processing" | "completed" | "failed"
   created_at: string
   url: string
-  chunks?: any[]
+  chunk_count: number
 }
 
 export function useDocuments(projectId?: string) {
