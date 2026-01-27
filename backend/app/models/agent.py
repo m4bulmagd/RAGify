@@ -9,6 +9,7 @@ from sqlalchemy import Column, TIMESTAMP
 
 from datetime import datetime, UTC
 from app.utils.datetime import utc_now
+from app.core.constants import GeminiModel
 
 
 class LLMProvider(str, Enum):
@@ -72,8 +73,8 @@ class AgentLLMConfig(SQLModel, table=True):
     agent_id: UUID = Field(foreign_key="agents.id", unique=True, index=True)
 
     # LLM Provider Settings
-    provider: LLMProvider = Field(default=LLMProvider.OPENAI)
-    model_name: str = Field(default="gpt-4-turbo-preview")
+    provider: LLMProvider = Field(default=LLMProvider.GEMINI)
+    model_name: str = Field(default=GeminiModel.GEMINI_2_5_PRO)
 
     # Generation Parameters
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)

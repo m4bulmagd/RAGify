@@ -4,13 +4,14 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from app.models.agent import LLMProvider, AgentType
+from app.core.constants import GeminiModel
 from uuid import UUID
 
 
 # Base schemas
 class AgentLLMConfigBase(BaseModel):
     provider: LLMProvider = LLMProvider.OPENAI
-    model_name: str = "gpt-4-turbo-preview"
+    model_name: str = GeminiModel.GEMINI_2_5_PRO
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(default=1000, ge=1)
     top_p: float = Field(default=1.0, ge=0.0, le=1.0)

@@ -7,6 +7,7 @@ from datetime import datetime
 from app.utils.datetime import utc_now
 from sqlalchemy import TIMESTAMP, Column
 from sqlalchemy import Index
+from app.core.config import settings
 
 if TYPE_CHECKING:
     from .document import Document
@@ -35,7 +36,7 @@ class Chunk(ChunkBase, table=True):
 
     # Embedding vector for similarity search
     embedding: Optional[List[float]] = Field(
-        default=None, sa_column=Column(Vector(1536))
+        default=None, sa_column=Column(Vector(settings.VECTOR_EMBEDDING_DIMENSIONS))
     )
 
     document: "Document" = Relationship(back_populates="chunks")
@@ -46,7 +47,10 @@ class Chunk(ChunkBase, table=True):
             "ix_chunks_embedding",
             "embedding",
             postgresql_ops={"embedding": "vector_cosine_ops"},
-            postgresql_with={"m": "16", "ef_construction": "64"},
+            postgresql_with={
+                "m": str(settings.VECTOR_HNSW_M),
+                "ef_construction": str(settings.VECTOR_HNSW_EF_CONSTRUCTION),
+            },
             postgresql_using="hnsw",
         ),
     )
