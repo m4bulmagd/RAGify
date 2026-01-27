@@ -12,6 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.interfaces.embedding import EmbeddingProvider
+from app.core.constants import EmbeddingModel
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
     However, we implement both methods for interface consistency.
     """
 
-    DEFAULT_MODEL = "text-embedding-3-small"
+    DEFAULT_MODEL = EmbeddingModel.OPENAI_TEXT_EMBEDDING_3_SMALL
     DEFAULT_DIMENSIONS = 1536
     MAX_BATCH_SIZE = 1500  # OpenAI supports large batches
 

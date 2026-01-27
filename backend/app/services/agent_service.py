@@ -3,23 +3,45 @@ from typing import List, Optional, Tuple, Dict, Any
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 import logging
+import time
+from pydantic import BaseModel
 
 from app.models.agent import Agent, AgentLLMConfig, LLMProvider
 from app.api.deps import SessionDep
 from app.services.processing.vector_search_service import VectorSearchService
 from app.services.processing.embedding_service import EmbeddingGenerationService
-from app.core.interfaces.llm import BaseLLM
+from app.core.interfaces.llm import BaseLLM, LLMResponse
 from app.providers.llm.openai_llm import OpenAILLM
 from app.providers.llm.gemini_llm import GeminiLLM
+from app.core.constants import GeminiModel
 
 logger = logging.getLogger(__name__)
 
 
+class AgentRunResult(BaseModel):
+    """Result of an agent run."""
+
+    content: str
+    citations: List[Dict[str, Any]]
+    model_name: str
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    total_tokens: Optional[int] = None
+    latency_ms: int
+
+
 class AgentService:
-    def __init__(self, session: Session):
+    def __init__(
+        self,
+        session: Session,
+        vector_service: Optional[VectorSearchService] = None,
+        embedding_service: Optional[EmbeddingGenerationService] = None,
+    ):
         self.session = session
-        self.vector_service = VectorSearchService(session)
-        self.embedding_service = EmbeddingGenerationService(session)
+        self.vector_service = vector_service or VectorSearchService(session)
+        self.embedding_service = embedding_service or EmbeddingGenerationService(
+            session
+        )
 
     def _get_llm_provider(self, config: AgentLLMConfig) -> BaseLLM:
         """Factory to get the correct LLM provider based on config."""
@@ -42,13 +64,15 @@ class AgentService:
         agent_id: UUID,
         query: str,
         session_id: UUID,
-    ) -> Tuple[str, List[Dict[str, Any]]]:
+    ) -> AgentRunResult:
         """
         Run the RAG agent for a given query.
 
         Returns:
-            Tuple[str, List[Dict]]: (Response text, List of source citations)
+            AgentRunResult containing response, usage and citations.
         """
+        start_time = time.time()
+
         # 1. Fetch Agent & Config
         statement = (
             select(Agent)
@@ -65,18 +89,7 @@ class AgentService:
         if not agent:
             raise ValueError(f"Agent {agent_id} not found")
 
-        if not agent.llm_config:
-            # Create default config if missing? Or raise error?
-            # Raising error is safer for now.
-            print(f"Agent {agent_id} missing LLM config")  # Debug
-            # In a real app we might fallback to defaults
-            # raise ValueError(f"Agent {agent_id} missing LLM config")
-            # Proceeding effectively with defaults if I construct it manually,
-            # but let's assume valid agent creation ensures this.
-            pass
-
         # 2. Retrieve Context
-        # Flatten document IDs from agent links
         doc_ids = (
             [link.document_id for link in agent.document_links]
             if agent.document_links
@@ -87,7 +100,6 @@ class AgentService:
         query_embedding = self.embedding_service.embed_query(query)
 
         # Search
-        # Use defaults from retrieval config if available
         top_k = 5
         if agent.retrieval_config:
             top_k = agent.retrieval_config.top_k
@@ -95,8 +107,8 @@ class AgentService:
         chunks_with_scores = await self.vector_service.similarity_search_with_scores(
             query_embedding=query_embedding,
             limit=top_k,
-            document_ids=doc_ids,  # Filter by documents linked to this agent
-            project_id=agent.project_id,  # And/Or project
+            document_ids=doc_ids,
+            project_id=agent.project_id,
         )
 
         # 3. Construct Context String
@@ -104,13 +116,10 @@ class AgentService:
         citations = []
 
         for chunk, score in chunks_with_scores:
-            # Basic context format
             context_parts.append(f"Content: {chunk.text}")
-
-            # Prepare citation (metadata)
             citations.append(
                 {
-                    "chunk_id": chunk.id,  # Now int
+                    "chunk_id": chunk.id,
                     "document_id": str(chunk.document_id),
                     "document_name": (
                         chunk.document.filename if chunk.document else "Unknown"
@@ -137,19 +146,26 @@ class AgentService:
         User Question: {query}
         """
 
-        logger.info(f"Full prompt: {full_prompt}")
-        print(f"Full prompt: {full_prompt}")
-
         # 5. Generate Response
         llm_config = agent.llm_config
         provider = self._get_llm_provider(llm_config)
 
-        response_text = await provider.generate(
+        llm_response = await provider.generate(
             prompt=full_prompt,
             system_prompt=system_prompt,
             temperature=llm_config.temperature if llm_config else 0.7,
             max_tokens=llm_config.max_tokens if llm_config else 1000,
-            model=llm_config.model_name if llm_config else "gpt-4-turbo-preview",
+            model=llm_config.model_name if llm_config else GeminiModel.GEMINI_2_5_PRO,
         )
 
-        return response_text, citations
+        latency_ms = int((time.time() - start_time) * 1000)
+
+        return AgentRunResult(
+            content=llm_response.content,
+            citations=citations,
+            model_name=llm_response.model_name,
+            prompt_tokens=llm_response.prompt_tokens,
+            completion_tokens=llm_response.completion_tokens,
+            total_tokens=llm_response.total_tokens,
+            latency_ms=latency_ms,
+        )

@@ -10,9 +10,11 @@ import app.core.celery_app  # Ensure Celery app is loaded
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    # await init_db() # We usually use alembic for migrations, avoiding auto-create for now unless dev
+    from app.core.notifications import manager
+    await manager.start_redis_listener()
     yield
     # Shutdown
+    await manager.stop_redis_listener()
 
 
 app = FastAPI(

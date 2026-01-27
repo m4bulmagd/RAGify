@@ -1,5 +1,17 @@
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Optional, Dict, Any, List
+from pydantic import BaseModel, Field
+
+
+class LLMResponse(BaseModel):
+    """
+    Structured response from an LLM provider.
+    """
+    content: str
+    model_name: str
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    total_tokens: Optional[int] = None
 
 
 class BaseLLM(ABC):
@@ -15,7 +27,7 @@ class BaseLLM(ABC):
         temperature: float = 0.7,
         max_tokens: int = 1000,
         **kwargs: Any
-    ) -> str:
+    ) -> LLMResponse:
         """
         Generate a response from the LLM.
 
@@ -27,7 +39,7 @@ class BaseLLM(ABC):
             **kwargs: Additional provider-specific arguments
 
         Returns:
-            The generated text response
+            The generated LLMResponse
         """
         pass
 

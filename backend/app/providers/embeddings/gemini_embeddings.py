@@ -14,6 +14,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.interfaces.embedding import EmbeddingProvider
+from app.core.constants import EmbeddingModel
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
     - RETRIEVAL_QUERY: Used for embed_query (search queries)
     """
 
-    DEFAULT_MODEL = "gemini-embedding-001"
+    DEFAULT_MODEL = EmbeddingModel.GEMINI_EMBEDDING_001
     DEFAULT_DIMENSIONS = 1536
     MAX_BATCH_SIZE = 100
 

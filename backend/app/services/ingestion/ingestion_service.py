@@ -256,15 +256,3 @@ class IngestionService:
         path = Path(filename)
         extension = path.suffix.lower()
         return FileType.from_extension(extension)
-
-    # Legacy method for backward compatibility
-    def process_document_legacy(
-        self,
-        document: Document,
-        session: Session,
-    ) -> List[Chunk]:
-        """
-        Legacy method returning just chunks for backward compatibility.
-        """
-        result = self.process_document(document, session)
-        return result.chunks

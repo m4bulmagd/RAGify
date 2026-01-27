@@ -13,6 +13,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 from app.core.interfaces.embedding import EmbeddingProvider
+from app.core.constants import EmbeddingModel
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class CohereEmbeddingProvider(EmbeddingProvider):
     - search_query: Used for embed_query (search queries)
     """
 
-    DEFAULT_MODEL = "embed-english-v3.0"
+    DEFAULT_MODEL = EmbeddingModel.COHERE_EMBED_ENGLISH_V3
     DEFAULT_DIMENSIONS = 1024
     MAX_BATCH_SIZE = 96  # Cohere's batch limit
 

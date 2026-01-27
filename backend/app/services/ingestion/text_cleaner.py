@@ -425,12 +425,3 @@ class TextCleaner:
         if footer_pattern:
             text = re.sub(footer_pattern, "", text, flags=re.MULTILINE)
         return text
-
-    # Legacy method for backward compatibility
-    def clean_legacy(self, text: str) -> str:
-        """
-        Legacy clean method for backward compatibility.
-        Returns just the cleaned text string.
-        """
-        result = self.clean(text)
-        return result.text

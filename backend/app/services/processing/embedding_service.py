@@ -5,6 +5,7 @@ Encapsulates business logic for generating and storing embeddings.
 """
 
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 import logging
 
 from app.services.processing.exceptions import (
@@ -81,7 +82,7 @@ class EmbeddingGenerationService:
         logger.info(f"Fetched {len(chunks)} chunks from database")
         return chunks
 
-    def fetch_document(self, document_id: int):
+    def fetch_document(self, document_id: UUID):
         """
         Fetch document from database.
 
@@ -193,7 +194,7 @@ class EmbeddingGenerationService:
 
     def update_document_status(
         self,
-        document_id: int,
+        document_id: UUID,
         status,
         error_message: Optional[str] = None,
     ) -> None:
@@ -221,7 +222,7 @@ class EmbeddingGenerationService:
 
     def _send_notification(
         self,
-        document_id: int,
+        document_id: UUID,
         status,
         error_message: Optional[str] = None,
     ) -> None:
@@ -229,7 +230,7 @@ class EmbeddingGenerationService:
         try:
             from app.services.notification import NotificationService
 
-            notification_service = NotificationService()
+            notification_service = NotificationService(session=self.session)
             message = error_message or "Processing complete"
             notification_service.notify_document_status(
                 document_id, status, message=message

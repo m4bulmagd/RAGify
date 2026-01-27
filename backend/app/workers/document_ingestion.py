@@ -77,7 +77,7 @@ def process_document(self, document_id: str) -> dict:
                 # Notify user
                 from app.services.notification import NotificationService
 
-                notification_service = NotificationService()
+                notification_service = NotificationService(session=session)
                 notification_service.notify_document_status(
                     document.id,
                     DocumentStatus.COMPLETED,
@@ -112,7 +112,7 @@ def process_document(self, document_id: str) -> dict:
             # Notify user
             from app.services.notification import NotificationService
 
-            notification_service = NotificationService()
+            notification_service = NotificationService(session=session)
             notification_service.notify_document_status(
                 document.id, DocumentStatus.FAILED, message=str(e)
             )
