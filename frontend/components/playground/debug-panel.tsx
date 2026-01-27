@@ -3,7 +3,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Activity, Search, Database } from "lucide-react"
 
-export function DebugPanel() {
+import { Message } from "@/hooks/use-rag-chat"
+
+interface DebugPanelProps {
+  lastMessage?: Message
+}
+
+export function DebugPanel({ lastMessage }: DebugPanelProps) {
   return (
     <div className="h-full border-l border-border bg-sidebar-background flex flex-col">
        <div className="p-4 border-b border-border flex items-center justify-between">
@@ -25,31 +31,19 @@ export function DebugPanel() {
                     <TraceItem 
                         step="USER_INPUT"
                         time="0ms"
-                        data="How do I terminate the contract?"
-                    />
-                     <TraceItem 
-                        step="EMBEDDING"
-                        time="45ms"
-                        data="text-embedding-3-small (1536 dim)"
-                        color="text-blue-500"
-                    />
-                     <TraceItem 
-                        step="RERANK"
-                        time="120ms"
-                        data="Found 5 relevant chunks (Score > 0.75)"
-                        color="text-purple-500"
+                        data={lastMessage?.role === "user" ? lastMessage.content : "Waiting for input..."}
                     />
                      <TraceItem 
                         step="LLM_CALL"
-                        time="350ms"
-                        data="gpt-4-turbo (Temp: 0.7)"
+                        time={lastMessage?.usage?.latency_ms ? `${lastMessage.usage.latency_ms}ms` : "-"}
+                        data={lastMessage?.usage?.model_name || "Waiting for response..."}
                         color="text-green-500"
                     />
                      <TraceItem 
                         step="GENERATION"
-                        time="1.2s"
-                        data="Streaming started..."
-                        color="text-orange-500"
+                        time="-"
+                        data={lastMessage?.isStreaming ? "Streaming..." : "Completed"}
+                        color={lastMessage?.isStreaming ? "text-orange-500" : "text-gray-500"}
                     />
                 </div>
              </ScrollArea>
@@ -58,17 +52,23 @@ export function DebugPanel() {
           <TabsContent value="retrieval" className="flex-1 overflow-hidden mt-0">
               <ScrollArea className="h-full">
                   <div className="p-4 space-y-3">
-                      {[1, 2, 3, 4, 5].map(i => (
-                          <div key={i} className="p-3 border border-border rounded bg-card/50 hover:border-primary/50 transition-colors">
-                              <div className="flex justify-between items-center mb-1">
-                                  <Badge variant="secondary" className="text-[10px] h-5">Chunk #{i}</Badge>
-                                  <span className="font-mono text-[10px] text-primary">0.{90 - i*5}</span>
+                      {lastMessage?.citations ? (
+                          lastMessage.citations.map((citation, i) => (
+                              <div key={i} className="p-3 border border-border rounded bg-card/50 hover:border-primary/50 transition-colors">
+                                  <div className="flex justify-between items-center mb-1">
+                                      <Badge variant="secondary" className="text-[10px] h-5">Chunk #{citation.chunk_id}</Badge>
+                                      <span className="font-mono text-[10px] text-primary">{citation.similarity_score.toFixed(4)}</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground line-clamp-3">
+                                      {citation.content}
+                                  </p>
                               </div>
-                              <p className="text-xs text-muted-foreground line-clamp-3">
-                                  Terminating this agreement requires written notice provided at least 30 days in advance...
-                              </p>
+                          ))
+                      ) : (
+                          <div className="text-center text-muted-foreground text-xs py-4">
+                              No citations available
                           </div>
-                      ))}
+                      )}
                   </div>
               </ScrollArea>
           </TabsContent>

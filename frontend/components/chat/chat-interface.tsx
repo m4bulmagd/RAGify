@@ -6,15 +6,17 @@ import { Input } from "@/components/ui/input"
 import { Citation } from "@/components/chat/citation-card"
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { useRAGChat } from "@/hooks/use-rag-chat"
-import { useParams } from "next/navigation"
+import { Message } from "@/hooks/use-rag-chat"
 
-export function ChatInterface() {
-  const params = useParams()
-  const agentId = params.agentId as string
-  const projectId = params.projectId as string
+interface ChatInterfaceProps {
+  messages: Message[]
+  sendMessage: (content: string) => void
+  isLoading: boolean
+  setMessages: (messages: Message[]) => void
+}
 
-  const { messages, sendMessage, isLoading, setMessages } = useRAGChat(agentId, projectId)
+export function ChatInterface({ messages, sendMessage, isLoading, setMessages }: ChatInterfaceProps) {
+
   
   const [input, setInput] = React.useState("")
 
