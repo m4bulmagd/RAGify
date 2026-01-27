@@ -183,7 +183,7 @@ class EmbeddingGenerationService:
 
         # Create update mappings
         mappings = [
-            {"id": chunk.id, "embedding": embedding}
+            {"id": chunk.id, "project_id": chunk.project_id, "embedding": embedding}
             for chunk, embedding in zip(chunks, embeddings)
         ]
 

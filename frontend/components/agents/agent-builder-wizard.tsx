@@ -55,6 +55,7 @@ const formSchema = z.object({
   topK: z.number().min(1).max(20),
   similarityThreshold: z.number().min(0).max(1),
   retrievalMode: z.enum(["hybrid", "vector", "keyword"]),
+  enableReranking: z.boolean().default(false),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -103,6 +104,7 @@ export function AgentBuilderWizard({ projectId }: AgentBuilderWizardProps) {
       topK: 5,
       similarityThreshold: 0.5,
       retrievalMode: "hybrid",
+      enableReranking: false,
     },
   })
 
@@ -140,12 +142,13 @@ export function AgentBuilderWizard({ projectId }: AgentBuilderWizardProps) {
                   model_name: values.model,
                   temperature: values.temperature,
                   system_prompt: values.systemPrompt,
-                  enable_streaming: false // for now
+                  enable_streaming: true
               },
               retrieval_config: {
                   retrieval_mode: values.retrievalMode,
                   top_k: values.topK,
-                  similarity_threshold: values.similarityThreshold
+                  similarity_threshold: values.similarityThreshold,
+                  enable_reranking: values.enableReranking
               }
           }
 
@@ -416,9 +419,43 @@ function BrainStep({ form, providers }: { form: UseFormReturn<FormValues>, provi
   )
 }
 
+import { Switch } from "@/components/ui/switch"
+
 function RetrievalStep({ form }: { form: UseFormReturn<FormValues> }) {
   return (
     <div className="space-y-8">
+       <div className="space-y-4">
+          <div className="flex justify-between">
+            <Label>Retrieval Mode</Label>
+          </div>
+          <Select 
+            value={form.watch("retrievalMode")} 
+            onValueChange={(val: any) => form.setValue("retrievalMode", val)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="vector">Vector Only (Fast)</SelectItem>
+              <SelectItem value="keyword">Keyword Only (Exact Match)</SelectItem>
+              <SelectItem value="hybrid">Hybrid (Best of Both)</SelectItem>
+            </SelectContent>
+          </Select>
+      </div>
+
+       <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="space-y-0.5">
+                <Label>Reranking (Cross-Encoder)</Label>
+                <p className="text-xs text-muted-foreground">Significantly improves accuracy but slower.</p>
+            </div>
+            <Switch 
+                checked={form.watch("enableReranking")}
+                onCheckedChange={(checked) => form.setValue("enableReranking", checked)}
+            />
+          </div>
+      </div>
+
        <div className="space-y-4">
           <div className="flex justify-between">
             <Label>Top K (Chunks to retrieve)</Label>

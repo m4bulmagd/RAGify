@@ -163,6 +163,11 @@ class ChatContextBase(SQLModel):
     rank: int = Field(ge=0)  # Position in retrieval results
 
 
+from sqlalchemy import TIMESTAMP, Column, ForeignKeyConstraint
+from sqlmodel import Field, SQLModel, Relationship, JSON
+
+# ...
+
 class ChatContext(ChatContextBase, table=True):
     """
     Links messages to the document chunks used as context.
@@ -175,12 +180,11 @@ class ChatContext(ChatContextBase, table=True):
 
     # Foreign keys
     message_id: UUID = Field(foreign_key="chat_messages.id", index=True)
-    chunk_id: int = Field(foreign_key="chunks.id", index=True)
+    chunk_id: int = Field(index=True)
+    project_id: UUID = Field(foreign_key="projects.id", index=True)
     document_id: UUID = Field(foreign_key="documents.id", index=True)
 
     # Retrieval metadata
-    similarity_score: float = Field(ge=0.0, le=1.0)
-    rank: int = Field(ge=0)
     retrieval_method: str = Field(
         default="hybrid", max_length=50
     )  # vector, keyword, hybrid
@@ -196,8 +200,21 @@ class ChatContext(ChatContextBase, table=True):
 
     # Relationships
     message: "ChatMessage" = Relationship(back_populates="contexts")
-    chunk: "Chunk" = Relationship(back_populates="chat_contexts")
+    chunk: "Chunk" = Relationship(
+        back_populates="chat_contexts",
+        sa_relationship_kwargs={
+            "primaryjoin": "and_(ChatContext.chunk_id==Chunk.id, ChatContext.project_id==Chunk.project_id)",
+        },
+    )
     document: "Document" = Relationship(back_populates="chat_contexts")
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["chunk_id", "project_id"],
+            ["chunks.id", "chunks.project_id"],
+            ondelete="CASCADE",
+        ),
+    )
 
 
 # ============================================================================

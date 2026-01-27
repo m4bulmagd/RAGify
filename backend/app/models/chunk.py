@@ -2,7 +2,8 @@ from typing import Optional, List, Any, TYPE_CHECKING
 from uuid import UUID, uuid4
 from sqlmodel import Field, SQLModel, Relationship, Column
 from pgvector.sqlalchemy import Vector
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
+from sqlalchemy import Computed
 from datetime import datetime
 from app.utils.datetime import utc_now
 from sqlalchemy import TIMESTAMP, Column
@@ -27,7 +28,8 @@ class Chunk(ChunkBase, table=True):
 
     __tablename__ = "chunks"
 
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True, sa_column_kwargs={"autoincrement": True})
+    project_id: UUID = Field(foreign_key="projects.id", index=True, primary_key=True)
     document_id: UUID = Field(foreign_key="documents.id", index=True)
     created_at: datetime = Field(
         default_factory=utc_now,
@@ -37,6 +39,15 @@ class Chunk(ChunkBase, table=True):
     # Embedding vector for similarity search
     embedding: Optional[List[float]] = Field(
         default=None, sa_column=Column(Vector(settings.VECTOR_EMBEDDING_DIMENSIONS))
+    )
+
+    # Keyword search vector (Full Text Search)
+    content_vector: Optional[Any] = Field(
+        default=None,
+        sa_column=Column(
+            TSVECTOR,
+            Computed("to_tsvector('english', text)", persisted=True),
+        ),
     )
 
     document: "Document" = Relationship(back_populates="chunks")
@@ -52,5 +63,10 @@ class Chunk(ChunkBase, table=True):
                 "ef_construction": str(settings.VECTOR_HNSW_EF_CONSTRUCTION),
             },
             postgresql_using="hnsw",
+        ),
+        Index(
+            "ix_chunks_content_vector",
+            "content_vector",
+            postgresql_using="gin",
         ),
     )

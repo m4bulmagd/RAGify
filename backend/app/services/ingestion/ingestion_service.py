@@ -219,6 +219,7 @@ class IngestionService:
             chunks = []
             for i, chunk_data in enumerate(chunk_texts):
                 chunk = Chunk(
+                    project_id=document.project_id,
                     document_id=document.id,
                     text=chunk_data["text"],
                     page_number=chunk_data.get("page_number"),
@@ -244,6 +245,7 @@ class IngestionService:
             return result
 
         except Exception as e:
+            session.rollback()
             logger.exception(f"Ingestion failed for document {document.id}: {e}")
             result.success = False
             result.error = str(e)

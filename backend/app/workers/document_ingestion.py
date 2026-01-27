@@ -120,34 +120,47 @@ def process_document(self, document_id: str) -> dict:
             raise
 
 
+from celery.signals import worker_ready
+
 @shared_task(name="app.workers.document_ingestion.cleanup_failed_documents")
 def cleanup_failed_documents() -> dict:
     """
     Periodic task to clean up failed document processing attempts.
-    Can be scheduled via Celery Beat.
+    Handles documents stuck in PROCESSING or PENDING for > 1 hour.
     """
     from app.core.db import get_sync_session
     from app.models.document import Document, DocumentStatus
-    from sqlmodel import select
-    from datetime import datetime, timedelta
+    from sqlmodel import select, or_
+    from datetime import datetime, timedelta, UTC
 
     logger.info("Running failed documents cleanup")
 
     with get_sync_session() as session:
-        # Find documents stuck in PROCESSING for > 1 hour
-        cutoff = datetime.utcnow() - timedelta(hours=1)
+        # Find documents stuck in non-final states for > 1 hour
+        cutoff = datetime.now(UTC) - timedelta(hours=1)
         statement = select(Document).where(
-            Document.status == DocumentStatus.PROCESSING,
+            or_(
+                Document.status == DocumentStatus.PROCESSING,
+                Document.status == DocumentStatus.PENDING
+            ),
             Document.updated_at < cutoff,
         )
         result = session.execute(statement)
         stuck_docs = result.scalars().all()
 
         for doc in stuck_docs:
+            logger.warning(f"Marking stuck document {doc.id} ({doc.status}) as FAILED")
             doc.status = DocumentStatus.FAILED
-            doc.error_message = "Processing timeout"
+            doc.error_message = f"Processing timeout (stuck in {doc.status} for > 1 hour)"
             session.add(doc)
 
         session.commit()
 
         return {"cleaned_up": len(stuck_docs)}
+
+@worker_ready.connect
+def at_start(sender, **kwargs):
+    """Run cleanup on worker startup to handle tasks interrupted by previous crashes."""
+    with sender.app.connection() as conn:
+        cleanup_failed_documents.delay()
+        logger.info("Triggered initial document cleanup on worker startup")

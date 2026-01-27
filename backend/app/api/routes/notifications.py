@@ -14,13 +14,20 @@ router = APIRouter()
 @router.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
-    token: str = Query(...),
+    token: str = Query(None),
 ):
     """
     WebSocket endpoint for real-time notifications.
-    Token is passed as query parameter for convenience with browser WS clients.
+    Token can be passed as query parameter or via 'access_token' cookie.
     """
     try:
+        if not token:
+            token = websocket.cookies.get("access_token")
+            
+        if not token:
+            await websocket.close(code=1008)
+            return
+
         # Validate token
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]

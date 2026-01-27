@@ -100,9 +100,10 @@ class VectorSearchService:
             statement = statement.where(Chunk.document_id.in_(document_ids))
 
         # Apply project filter (requires join with documents)
+        # Apply project filter
         if project_id:
-            statement = statement.join(Document).where(
-                Document.project_id == project_id
+            statement = statement.where(
+                Chunk.project_id == project_id
             )
 
         # Apply threshold filter
@@ -215,3 +216,142 @@ class VectorSearchService:
         scored_results.sort(key=lambda x: x[1], reverse=True)
 
         return scored_results
+
+    async def keyword_search(
+        self,
+        query_text: str,
+        limit: int = 10,
+        document_ids: Optional[List[UUID]] = None,
+        project_id: Optional[UUID] = None,
+    ) -> List[Tuple[Chunk, float]]:
+        """
+        Perform keyword search using Postgres Full Text Search.
+
+        Args:
+            query_text: The search query string
+            limit: Maximum number of results to return
+            document_ids: Optional list of document IDs to filter by
+            project_id: Optional project ID to filter by
+
+        Returns:
+            List of (Chunk, rank_score) tuples, sorted by score (descending)
+        """
+        # Prepare TS Query (simple 'plain' parsing for now to handle special chars)
+        # websearch_to_tsquery is often better for user input
+        ts_query = func.websearch_to_tsquery("english", query_text)
+        rank = func.ts_rank(Chunk.content_vector, ts_query)
+
+        statement = select(Chunk, rank.label("rank")).where(
+            Chunk.content_vector.op("@@")(ts_query)
+        )
+
+        if document_ids:
+            statement = statement.where(Chunk.document_id.in_(document_ids))
+
+        # Apply project filter
+        if project_id:
+            statement = statement.where(
+                Chunk.project_id == project_id
+            )
+
+        statement = statement.order_by(rank.desc()).limit(limit)
+
+        # Eager load document
+        from sqlalchemy.orm import selectinload
+
+        statement = statement.options(selectinload(Chunk.document))
+
+        result = await self.session.execute(statement)
+        rows = result.all()
+
+        return [(row.Chunk, row.rank) for row in rows]
+
+    def reciprocal_rank_fusion(
+        self,
+        vector_results: List[Tuple[Chunk, float]],
+        keyword_results: List[Tuple[Chunk, float]],
+        k: int = 60,
+    ) -> List[Tuple[Chunk, float]]:
+        """
+        Combine vector and keyword results using Reciprocal Rank Fusion (RRF).
+
+        Args:
+            vector_results: List of (Chunk, score) from vector search
+            keyword_results: List of (Chunk, score) from keyword search
+            k: RRF constant (default 60)
+
+        Returns:
+            Combined list of (Chunk, rrf_score) sorted by score
+        """
+        scores = {}
+
+        # Vector Ranks
+        for rank, (chunk, _) in enumerate(vector_results):
+            if chunk.id not in scores:
+                scores[chunk.id] = {"chunk": chunk, "score": 0.0}
+            scores[chunk.id]["score"] += 1.0 / (k + rank + 1)
+
+        # Keyword Ranks
+        for rank, (chunk, _) in enumerate(keyword_results):
+            if chunk.id not in scores:
+                scores[chunk.id] = {"chunk": chunk, "score": 0.0}
+            scores[chunk.id]["score"] += 1.0 / (k + rank + 1)
+
+        sorted_scores = sorted(
+            scores.values(), key=lambda x: x["score"], reverse=True
+        )
+        return [(item["chunk"], item["score"]) for item in sorted_scores]
+
+    async def hybrid_search(
+        self,
+        query_embedding: List[float],
+        query_text: str,
+        limit: int = 10,
+        vector_limit: Optional[int] = None,
+        keyword_limit: Optional[int] = None,
+        threshold: Optional[float] = None,
+        document_ids: Optional[List[UUID]] = None,
+        project_id: Optional[UUID] = None,
+    ) -> List[Tuple[Chunk, float]]:
+        """
+        Perform hybrid search (Vector + Keyword) using RRF.
+
+        Args:
+            query_embedding: Query vector
+            query_text: Query text string
+            limit: Final number of results to return
+            vector_limit: How many vector results to fetch (default: limit * 2)
+            keyword_limit: How many keyword results to fetch (default: limit * 2)
+            ... filters ...
+
+        Returns:
+            Merged list of chunks
+        """
+        # Fetch more candidates than final limit for better fusion
+        v_limit = vector_limit or (limit * 2)
+        k_limit = keyword_limit or (limit * 2)
+
+        # Run both searches in parallel (ideally)
+        # For simplicity in this async context without asyncio.gather overhead on session:
+        # (SQLAlchemy async session isn't thread-safe for parallel queries on same session)
+        
+        vector_results = await self.similarity_search_with_scores(
+            query_embedding=query_embedding,
+            limit=v_limit,
+            threshold=threshold,
+            document_ids=document_ids,
+            project_id=project_id,
+        )
+
+        keyword_results = await self.keyword_search(
+            query_text=query_text,
+            limit=k_limit,
+            document_ids=document_ids,
+            project_id=project_id,
+        )
+
+        # Fuse
+        merged = self.reciprocal_rank_fusion(vector_results, keyword_results)
+        
+        # Clip to limit
+        return merged[:limit]

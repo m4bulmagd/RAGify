@@ -1,8 +1,11 @@
 # app/api/routes/chats.py
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi.responses import StreamingResponse
 from typing import List, Optional, Any
 from uuid import UUID
+import json
+import logging
 
 from app.api import deps
 from app.api.deps import SessionDep, CurrentUser
@@ -20,6 +23,7 @@ from app.schemas.chat import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # Sessions
@@ -144,7 +148,7 @@ async def send_message(
 ) -> Any:
     """
     Send a message to an agent and get a response.
-    NOTE: content generation logic missing here, just placeholder for structure.
+    Supports streaming via Server-Sent Events (SSE) if stream=True.
     """
     # 1. Get or Create Session
     if chat_request.session_id:
@@ -161,62 +165,120 @@ async def send_message(
         db, session_id=session.id, role="user", content=chat_request.message
     )
 
-    # 3. Trigger Agent
-    try:
-        from app.services.agent_service import AgentService
+    from app.services.agent_service import AgentService
+    agent_service = AgentService(db)
 
-        agent_service = AgentService(db)
+    # 3. Stream or Block
+    if chat_request.stream:
+        async def event_generator():
+            accumulated_content = ""
+            citations = []
+            final_usage = {}
+            
+            try:
+                async for event in agent_service.run_agent_stream(
+                    agent_id=session.agent_id, query=chat_request.message, session_id=session.id
+                ):
+                    # Pass through event to client
+                    yield f"data: {json.dumps(event)}\n\n"
+                    
+                    # Accumulate for DB save
+                    if event["type"] == "content":
+                        accumulated_content += event.get("data", "")
+                    elif event["type"] == "citation":
+                        citations = event.get("data", [])
+                    elif event["type"] == "usage":
+                        final_usage = event.get("data", {})
+                
+                # Save Assistant Message
+                agent_msg = await chat_message_crud.create_message(
+                    db,
+                    session_id=session.id,
+                    role="assistant",
+                    content=accumulated_content,
+                    model_name=final_usage.get("model_name"),
+                    tokens_used=0, # Placeholder
+                    latency_ms=final_usage.get("latency_ms", 0),
+                )
+                
+                # Save Contexts
+                if citations:
+                    from app.crud.chat import chat_context_crud
+                    await chat_context_crud.add_contexts(
+                        db,
+                        message_id=agent_msg.id,
+                        contexts=[
+                            {
+                                "chunk_id": c["chunk_id"],
+                                "project_id": session.project_id,
+                                "document_id": UUID(c["document_id"]),
+                                "similarity_score": c["similarity_score"],
+                                "rank": i,
+                                "retrieval_method": "hybrid",
+                                "was_used": True,
+                            }
+                            for i, c in enumerate(citations)
+                        ],
+                    )
+                
+                # Send "done" event with message ID
+                yield f"data: {json.dumps({'type': 'done', 'message_id': str(agent_msg.id)})}\n\n"
+                
+            except Exception as e:
+                logger.error(f"Streaming error: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
 
-        run_result = await agent_service.run_agent(
-            agent_id=session.agent_id, query=chat_request.message, session_id=session.id
-        )
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-        agent_msg = await chat_message_crud.create_message(
-            db,
-            session_id=session.id,
-            role="assistant",
-            content=run_result.content,
-            model_name=run_result.model_name,
-            tokens_used=run_result.total_tokens,
-            latency_ms=run_result.latency_ms,
-        )
-
-        # Save contexts/citations
-        if run_result.citations:
-            from app.crud.chat import chat_context_crud
-            await chat_context_crud.add_contexts(
-                db,
-                message_id=agent_msg.id,
-                contexts=[
-                    {
-                        "chunk_id": c["chunk_id"],
-                        "document_id": UUID(c["document_id"]),
-                        "similarity_score": c["similarity_score"],
-                        "rank": i,
-                        "retrieval_method": "hybrid",
-                        "was_used": True,
-                    }
-                    for i, c in enumerate(run_result.citations)
-                ],
+    else:
+        # Blocking Mode
+        try:
+            run_result = await agent_service.run_agent(
+                agent_id=session.agent_id, query=chat_request.message, session_id=session.id
             )
 
-        return ChatResponse(
-            session_id=session.id,
-            message_id=agent_msg.id,
-            content=run_result.content,
-            sources=run_result.citations,
-            model_name=run_result.model_name,
-            tokens_used=run_result.total_tokens or 0,
-            latency_ms=run_result.latency_ms,
-        )
-    except Exception as e:
-        # Log error
-        import logging
+            agent_msg = await chat_message_crud.create_message(
+                db,
+                session_id=session.id,
+                role="assistant",
+                content=run_result.content,
+                model_name=run_result.model_name,
+                tokens_used=run_result.total_tokens,
+                latency_ms=run_result.latency_ms,
+            )
 
-        logging.getLogger(__name__).error(f"Agent execution failed: {e}")
-        # Return fallback or error?
-        # For now, propagate error to see what happens
-        raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
+            # Save contexts/citations
+            if run_result.citations:
+                from app.crud.chat import chat_context_crud
+                await chat_context_crud.add_contexts(
+                    db,
+                    message_id=agent_msg.id,
+                    contexts=[
+                        {
+                            "chunk_id": c["chunk_id"],
+                            "project_id": session.project_id,
+                            "document_id": UUID(c["document_id"]),
+                            "similarity_score": c["similarity_score"],
+                            "rank": i,
+                            "retrieval_method": "hybrid",
+                            "was_used": True,
+                        }
+                        for i, c in enumerate(run_result.citations)
+                    ],
+                )
+
+            return ChatResponse(
+                session_id=session.id,
+                message_id=agent_msg.id,
+                content=run_result.content,
+                sources=run_result.citations,
+                model_name=run_result.model_name,
+                tokens_used=run_result.total_tokens or 0,
+                latency_ms=run_result.latency_ms,
+            )
+        except Exception as e:
+            logger.error(f"Agent execution failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
 
 @router.post("/messages/{message_id}/feedback", response_model=ChatFeedbackResponse)

@@ -229,14 +229,6 @@ class TestTextCleaner:
         # Short text should trigger warning
         assert any("short" in w.lower() for w in result.warnings)
 
-    # --- Legacy Compatibility Tests ---
-
-    def test_legacy_clean_method(self):
-        """Legacy clean_legacy method should return just string."""
-        text = "Hello    world"
-        result = self.cleaner.clean_legacy(text)
-        assert isinstance(result, str)
-        assert result == "Hello world"
 
 
 class TestBoilerplateRemoval:

@@ -175,6 +175,7 @@ class CRUDChatContext(CRUDBase[ChatContext, BaseModel, BaseModel]):
             context = ChatContext(
                 message_id=message_id,
                 chunk_id=ctx["chunk_id"],
+                project_id=ctx["project_id"],
                 document_id=ctx["document_id"],
                 similarity_score=ctx["similarity_score"],
                 rank=ctx["rank"],

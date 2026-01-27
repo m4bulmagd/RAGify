@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/sidebar"
 import { Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { useSocket } from "@/hooks/use-socket"
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,9 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const { user, loading } = useAuth()
+  
+  // Enable real-time notifications
+  useSocket()
 
   useEffect(() => {
     if (!loading && !user) {
