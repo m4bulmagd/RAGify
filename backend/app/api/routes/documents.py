@@ -27,7 +27,8 @@ async def upload_document(
     """
     Upload a document to S3 and register it in the database.
     """
-    # Verify project access (TODO)
+    # Verify project access
+    await deps.check_project_access(db, project_id, current_user)
 
     # Validate file size
     if file.size and file.size > settings.MAX_UPLOAD_SIZE:
@@ -99,6 +100,9 @@ async def get_documents(
     """
     List documents for a project with chunk counts.
     """
+    # Verify project access
+    await deps.check_project_access(db, project_id, current_user)
+
     # Subquery to count chunks per document
     chunk_count_subq = (
         select(func.count(Chunk.id))

@@ -1,4 +1,5 @@
 from typing import Annotated, Generator
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
@@ -11,7 +12,9 @@ from app.core import security
 from app.core.config import settings
 from app.core.db import get_session
 from app.crud import user as crud_user
+from app.crud import project as crud_project
 from app.models.user import User
+from app.models.project import Project
 from app.schemas.token import TokenPayload
 
 from fastapi.security import OAuth2PasswordBearer
@@ -71,3 +74,14 @@ async def get_current_active_superuser(current_user: CurrentUser) -> User:
             status_code=400, detail="The user doesn't have enough privileges"
         )
     return current_user
+
+
+async def check_project_access(
+    session: AsyncSession, project_id: UUID, user: User
+) -> Project:
+    project = await crud_project.get(session, id=project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.owner_id != user.id and not user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    return project

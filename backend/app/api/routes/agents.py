@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List, Optional
 from uuid import UUID
 
+from app.api import deps
 from app.api.deps import SessionDep, CurrentUser
 from app.crud.agent import agent_crud
 from app.schemas.agent import (
@@ -49,17 +50,8 @@ async def create_agent(
 ):
     """Create new agent with configurations"""
 
-    # TODO: Verify user has access to project
-    # ... permission check ...
-
-    # TODO: Verify documents exist
-    # ... permission check ...
-
-    # TODO: Verify project exists
-    # ... permission check ...
-
-    # TODO: Verify user has access to documents
-    # ... permission check ...
+    # Verify user has access to project
+    await deps.check_project_access(db, agent_in.project_id, current_user)
 
     agent = await agent_crud.create_with_configs(
         db=db,
@@ -89,9 +81,8 @@ async def get_agents(
     """
     Retrieve agents.
     """
-    # TODO: Add granular permissions
-
     if project_id:
+        await deps.check_project_access(db, project_id, current_user)
         agents = await agent_crud.get_multi_by_project(
             db, project_id=project_id, skip=skip, limit=limit
         )
@@ -110,15 +101,14 @@ async def get_agent(
 ):
     """Get agent by ID with all configurations"""
 
-    # TODO: Verify user has access to agent
-    # ... permission check ...
-
     agent = await agent_crud.get_with_configs(db, agent_id)
 
     if not agent:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found"
         )
+
+    await deps.check_project_access(db, agent.project_id, current_user)
 
     return agent
 
@@ -131,6 +121,13 @@ async def update_llm_config(
     current_user: CurrentUser,
 ):
     """Update LLM configuration for agent"""
+
+    agent = await agent_crud.get(db, agent_id)
+    if not agent:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found"
+        )
+    await deps.check_project_access(db, agent.project_id, current_user)
 
     updated_config = await agent_crud.update_llm_config(
         db=db,

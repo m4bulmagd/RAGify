@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 from pydantic import AnyHttpUrl, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import PostgresDsn
@@ -14,6 +14,17 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     ALGORITHM: str = "HS256"
     SECURE_COOKIES: bool = True
+
+    @field_validator("SECRET_KEY")
+    def check_secret_key(cls, v: str) -> str:
+        if v == "changeme_production_key_here":
+            import warnings
+
+            warnings.warn(
+                "SECRET_KEY is set to default value. Change this in production!",
+                UserWarning,
+            )
+        return v
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = []
@@ -66,22 +77,24 @@ class Settings(BaseSettings):
             return v
         return f"redis://{info.data.get('REDIS_HOST')}:{info.data.get('REDIS_PORT')}/0"
 
-    # # Qdrant
-    # QDRANT_HOST: str
-    # QDRANT_PORT: int
-    # QDRANT_URL: Union[str, None] = None
-    # QDRANT_API_KEY: Union[str, None] = None
-    #
-    # @field_validator("QDRANT_URL", mode="after")
-    # def assemble_qdrant_url(cls, v: Union[str, None], info) -> str:
-    #     if isinstance(v, str):
-    #         return v
-    #     return f"http://{info.data.get('QDRANT_HOST')}:{info.data.get('QDRANT_PORT')}"
-
     # External APIs
     OPENAI_API_KEY: Union[str, None] = None
     GOOGLE_API_KEY: Union[str, None] = None
     COHERE_API_KEY: Union[str, None] = None
+
+    # Email
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    SMTP_PORT: Optional[int] = 587
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
+
+    @property
+    def EMAILS_ENABLED(self) -> bool:
+        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
 
     # Phoenix
     PHOENIX_COLLECTOR_ENDPOINT: str

@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from typing import List, Optional, Any
 from uuid import UUID
 
+from app.api import deps
 from app.api.deps import SessionDep, CurrentUser
 from app.crud.chat import chat_session_crud, chat_message_crud, chat_feedback_crud
+from app.crud.agent import agent_crud
 from app.schemas.chat import (
     ChatSessionCreate,
     ChatSessionResponse,
@@ -34,7 +36,8 @@ async def create_session(
     session_in: ChatSessionCreate,
 ) -> Any:
     """Create new chat session"""
-    # Verify project access (TODO: Implement granular permissions)
+    # Verify project access
+    await deps.check_project_access(db, session_in.project_id, current_user)
 
     session = await chat_session_crud.create_session(
         db=db,
@@ -56,6 +59,9 @@ async def get_sessions(
     limit: int = 50,
 ) -> Any:
     """Get all chat sessions for the current user"""
+    if project_id:
+        await deps.check_project_access(db, project_id, current_user)
+
     return await chat_session_crud.get_user_sessions(
         db=db, user_id=current_user.id, project_id=project_id, skip=skip, limit=limit
     )
@@ -161,31 +167,47 @@ async def send_message(
 
         agent_service = AgentService(db)
 
-        response_text, citations = await agent_service.run_agent(
+        run_result = await agent_service.run_agent(
             agent_id=session.agent_id, query=chat_request.message, session_id=session.id
         )
-
-        # Calculate tokens (mock/estimate for now or get from provider return)
-        tokens_used = len(response_text.split()) * 1.3  # Rough estimate
 
         agent_msg = await chat_message_crud.create_message(
             db,
             session_id=session.id,
             role="assistant",
-            content=response_text,
-            model_name="rag-agent",  # precise model name could come from run_agent return
-            tokens_used=int(tokens_used),
-            latency_ms=0,  # Need to track this
+            content=run_result.content,
+            model_name=run_result.model_name,
+            tokens_used=run_result.total_tokens,
+            latency_ms=run_result.latency_ms,
         )
+
+        # Save contexts/citations
+        if run_result.citations:
+            from app.crud.chat import chat_context_crud
+            await chat_context_crud.add_contexts(
+                db,
+                message_id=agent_msg.id,
+                contexts=[
+                    {
+                        "chunk_id": c["chunk_id"],
+                        "document_id": UUID(c["document_id"]),
+                        "similarity_score": c["similarity_score"],
+                        "rank": i,
+                        "retrieval_method": "hybrid",
+                        "was_used": True,
+                    }
+                    for i, c in enumerate(run_result.citations)
+                ],
+            )
 
         return ChatResponse(
             session_id=session.id,
             message_id=agent_msg.id,
-            content=response_text,
-            sources=citations,
-            model_name="rag-agent",
-            tokens_used=int(tokens_used),
-            latency_ms=0,
+            content=run_result.content,
+            sources=run_result.citations,
+            model_name=run_result.model_name,
+            tokens_used=run_result.total_tokens or 0,
+            latency_ms=run_result.latency_ms,
         )
     except Exception as e:
         # Log error
@@ -220,4 +242,27 @@ async def submit_feedback(
         message_id=message_id,
         user_id=current_user.id,
         feedback_data=feedback.model_dump(exclude={"message_id"}),
+    )
+
+
+@router.get("/feedback/stats", response_model=dict)
+async def get_feedback_stats(
+    *,
+    db: SessionDep,
+    current_user: CurrentUser,
+    agent_id: Optional[UUID] = None,
+    project_id: Optional[UUID] = None,
+) -> Any:
+    """Get feedback statistics"""
+    if project_id:
+        await deps.check_project_access(db, project_id, current_user)
+    
+    if agent_id:
+        agent = await agent_crud.get(db, agent_id)
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        await deps.check_project_access(db, agent.project_id, current_user)
+
+    return await chat_feedback_crud.get_feedback_stats(
+        db=db, agent_id=agent_id, project_id=project_id
     )
