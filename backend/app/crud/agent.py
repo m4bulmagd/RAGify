@@ -11,6 +11,9 @@ from uuid import UUID
 from app.schemas.agent import AgentCreate, AgentUpdate
 
 
+from sqlalchemy.orm import selectinload
+
+
 class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
     """CRUD operations for Agent"""
 
@@ -47,14 +50,22 @@ class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
                 db.add(agent_doc)
 
         await db.commit()
-        await db.refresh(agent)
-        return agent
+        # await db.refresh(agent) # Refresh doesn't load relationships easily
+
+        # Re-fetch with eager loading
+        return await self.get_with_configs(db, agent.id)
 
     async def get_with_configs(
         self, db: AsyncSession, agent_id: UUID
     ) -> Optional[Agent]:
         """Get agent with all configs loaded"""
-        statement = select(Agent).where(Agent.id == agent_id)
+        statement = (
+            select(Agent)
+            .where(Agent.id == agent_id)
+            .options(
+                selectinload(Agent.llm_config), selectinload(Agent.retrieval_config)
+            )
+        )
         result = await db.execute(statement)
         agent = result.scalars().first()
 
@@ -78,6 +89,9 @@ class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
             select(Agent)
             .where(Agent.project_id == project_id)
             .where(Agent.is_active == True)
+            .options(
+                selectinload(Agent.llm_config), selectinload(Agent.retrieval_config)
+            )
             .offset(skip)
             .limit(limit)
         )
@@ -89,6 +103,20 @@ class CRUDAgent(CRUDBase[Agent, AgentCreate, AgentUpdate]):
     ) -> List[Agent]:
         # Alias for get_by_project to match what I used in routes
         return await self.get_by_project(db, project_id, skip, limit)
+
+    async def get_multi(
+        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
+    ) -> List[Agent]:
+        statement = (
+            select(Agent)
+            .options(
+                selectinload(Agent.llm_config), selectinload(Agent.retrieval_config)
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+        result = await db.execute(statement)
+        return list(result.scalars().all())
 
     async def update_llm_config(
         self, db: AsyncSession, agent_id: UUID, config_data: dict

@@ -1,6 +1,14 @@
 import { AgentBuilderWizard } from "@/components/agents/agent-builder-wizard"
 
-export default function NewAgentPage() {
+interface NewAgentPageProps {
+  params: Promise<{
+    projectId: string
+  }>
+}
+
+export default async function NewAgentPage({ params }: NewAgentPageProps) {
+  const { projectId } = await params
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto">
       <div>
@@ -10,7 +18,7 @@ export default function NewAgentPage() {
         </p>
       </div>
 
-      <AgentBuilderWizard />
+      <AgentBuilderWizard projectId={projectId} />
     </div>
   )
 }

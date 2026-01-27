@@ -104,7 +104,7 @@ class ChatRequest(BaseModel):
 class ChatSource(BaseModel):
     """Source information for citations"""
 
-    chunk_id: UUID
+    chunk_id: int
     document_id: UUID
     document_name: str
     content: str

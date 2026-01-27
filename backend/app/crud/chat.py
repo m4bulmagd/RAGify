@@ -4,6 +4,7 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, UTC
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlmodel import select, func, and_
 from app.crud.base import CRUDBase
 from app.models.chat import (
@@ -47,6 +48,18 @@ class CRUDChatSession(CRUDBase[ChatSession, ChatSessionCreate, ChatSessionUpdate
         await db.commit()
         await db.refresh(session)
         return session
+
+    async def get_with_messages(
+        self, db: AsyncSession, session_id: UUID
+    ) -> Optional[ChatSession]:
+        """Get session with messages eager loaded"""
+        statement = (
+            select(ChatSession)
+            .where(ChatSession.id == session_id)
+            .options(selectinload(ChatSession.messages))
+        )
+        result = await db.execute(statement)
+        return result.scalars().first()
 
     async def get_user_sessions(
         self,

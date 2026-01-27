@@ -1,35 +1,35 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
-import { Plus, Bot, MoreHorizontal, Play } from "lucide-react"
+import { Plus, Bot, MoreHorizontal, Play, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-
-const agents = [
-  {
-    id: "agent_1",
-    name: "Legal Contract Helper",
-    model: "gpt-4",
-    status: "active",
-    deployments: 124,
-  },
-  {
-    id: "agent_2",
-    name: "Clause Extractor",
-    model: "claude-3-opus",
-    status: "draft",
-    deployments: 0,
-  },
-  {
-    id: "agent_3",
-    name: "Risk Auditor",
-    model: "gpt-3.5-turbo",
-    status: "active",
-    deployments: 890,
-  }
-]
+import { useAgents } from "@/hooks/use-agents"
+import { useParams } from "next/navigation"
 
 export default function AgentsPage() {
+  const params = useParams()
+  const projectId = params.projectId as string
+  const { agents, isLoading, error } = useAgents(projectId)
+
+  if (isLoading) {
+      return (
+          <div className="flex items-center justify-center p-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+      )
+  }
+
+  if (error) {
+      return (
+          <div className="p-8 text-center text-destructive">
+              Failed to load agents. Please try again.
+          </div>
+      )
+  }
+
   return (
       <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
@@ -40,21 +40,33 @@ export default function AgentsPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="./agents/new">
+          <Link href={`/projects/${projectId}/agents/new`}>
              <Plus className="mr-2 h-4 w-4" /> Create Agent
           </Link>
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {agents.map(agent => (
+          {(!agents || agents.length === 0) && (
+              <div className="col-span-full text-center py-12 border border-dashed rounded-lg bg-muted/50">
+                  <Bot className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">No agents created yet</h3>
+                  <p className="text-muted-foreground mb-6">Create your first AI agent to get started.</p>
+                  <Button asChild>
+                    <Link href={`/projects/${projectId}/agents/new`}>
+                        Create Agent
+                    </Link>
+                  </Button>
+              </div>
+          )}
+          {agents?.map(agent => (
               <Card key={agent.id} className="hover:border-primary/50 transition-colors group">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="flex items-center gap-2">
                           <div className="p-2 rounded-full bg-primary/10 text-primary">
                               <Bot className="h-4 w-4" />
                           </div>
-                          <CardTitle className="text-base">{agent.name}</CardTitle>
+                          <CardTitle className="text-base truncate max-w-[150px]" title={agent.name}>{agent.name}</CardTitle>
                       </div>
                       <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -73,13 +85,16 @@ export default function AgentsPage() {
                       <div className="flex justify-between items-end">
                           <div className="space-y-1">
                               <div className="flex items-center gap-2">
-                                  <Badge variant={agent.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
-                                      {agent.status}
+                                  <Badge variant={agent.is_active ? 'default' : 'secondary'} className="uppercase text-[10px]">
+                                      {agent.is_active ? 'Active' : 'Inactive'}
                                   </Badge>
-                                  <span className="text-xs text-muted-foreground uppercase">{agent.model}</span>
+                                  <span className="text-xs text-muted-foreground uppercase truncate max-w-[100px]">
+                                      {agent.llm_config?.model_name || 'N/A'}
+                                  </span>
                               </div>
                               <p className="text-xs text-muted-foreground">
-                                  {agent.deployments} conversations
+                                  {/* Placeholder for stats */}
+                                  0 conversations
                               </p>
                           </div>
                           <Button size="sm" variant="outline" className="gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors" asChild>

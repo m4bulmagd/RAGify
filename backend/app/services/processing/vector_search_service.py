@@ -66,7 +66,7 @@ class VectorSearchService:
             # Default to cosine
             return Chunk.embedding.cosine_distance(query_embedding)
 
-    def similarity_search(
+    async def similarity_search(
         self,
         query_embedding: List[float],
         limit: int = 10,
@@ -122,8 +122,13 @@ class VectorSearchService:
         # Order by distance (ascending) and limit
         statement = statement.order_by(distance_expr.asc()).limit(limit)
 
+        # Eager load document relationship to avoid MissingGreenlet
+        from sqlalchemy.orm import selectinload
+
+        statement = statement.options(selectinload(Chunk.document))
+
         # Execute query
-        result = self.session.execute(statement)
+        result = await self.session.execute(statement)
         rows = result.all()
 
         # Parse results
@@ -168,7 +173,7 @@ class VectorSearchService:
 
         return 0.0
 
-    def similarity_search_with_scores(
+    async def similarity_search_with_scores(
         self,
         query_embedding: List[float],
         limit: int = 10,
@@ -192,7 +197,7 @@ class VectorSearchService:
         Returns:
             List of (Chunk, similarity_score) tuples, sorted by score (descending)
         """
-        results = self.similarity_search(
+        results = await self.similarity_search(
             query_embedding=query_embedding,
             limit=limit,
             threshold=threshold,

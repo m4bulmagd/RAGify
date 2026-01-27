@@ -79,7 +79,10 @@ class ChatSession(ChatSessionBase, table=True):
         default_factory=utc_now,
         sa_column=Column(TIMESTAMP(timezone=True), nullable=False),
     )
-    last_message_at: Optional[datetime] = Field(default=None)
+    last_message_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=True),
+    )
 
     # Relationships
     user: "User" = Relationship(back_populates="chat_sessions")

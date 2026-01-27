@@ -79,7 +79,7 @@ class AgentRetrievalConfigResponse(AgentRetrievalConfigBase):
 
 
 class AgentResponse(AgentBase):
-    id: int
+    id: UUID
     project_id: UUID
     created_by: UUID
     is_active: bool

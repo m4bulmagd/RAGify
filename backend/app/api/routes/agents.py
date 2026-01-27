@@ -12,7 +12,35 @@ from app.schemas.agent import (
     AgentLLMConfigUpdate,
 )
 
+from app.models.agent import LLMProvider
+from app.providers.llm.openai_llm import OpenAILLM
+from app.providers.llm.gemini_llm import GeminiLLM
+
+# ... existing imports ...
+
+
 router = APIRouter()
+
+
+@router.get("/providers", response_model=List[dict])
+async def get_providers(
+    current_user: CurrentUser,
+):
+    """
+    Get available LLM providers and their supported models.
+    """
+    return [
+        {
+            "provider": LLMProvider.OPENAI.value,
+            "name": "OpenAI",
+            "models": OpenAILLM.supported_models(),
+        },
+        {
+            "provider": LLMProvider.GEMINI.value,
+            "name": "Google Gemini",
+            "models": GeminiLLM.supported_models(),
+        },
+    ]
 
 
 @router.post("/", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)

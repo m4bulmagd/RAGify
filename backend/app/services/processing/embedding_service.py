@@ -148,6 +148,28 @@ class EmbeddingGenerationService:
             logger.error(f"Embedding generation failed: {e}")
             raise EmbeddingProviderError(f"Failed to generate embeddings: {e}") from e
 
+    def embed_query(self, text: str) -> List[float]:
+        """
+        Generate embedding for a single query text.
+
+        Args:
+            text: Query text
+
+        Returns:
+            Embedding vector
+        """
+        try:
+            # Most providers simplify this, assuming implementation has embed_query
+            if hasattr(self.embedding_provider, "embed_query"):
+                return self.embedding_provider.embed_query(text)
+            # Fallback if provider only has embed_documents
+            return self.embedding_provider.embed_documents([text])[0]
+        except Exception as e:
+            logger.error(f"Query embedding generation failed: {e}")
+            raise EmbeddingProviderError(
+                f"Failed to generate query embedding: {e}"
+            ) from e
+
     def save_embeddings_to_postgres(self, chunks, embeddings) -> None:
         """
         Save embeddings to PostgreSQL (pgvector).

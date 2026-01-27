@@ -16,14 +16,11 @@ class LLMProvider(str, Enum):
     ANTHROPIC = "anthropic"
     AZURE_OPENAI = "azure_openai"
     OLLAMA = "ollama"
+    GEMINI = "gemini"
 
 
 class AgentType(str, Enum):
     QA = "question-answering"
-    SUMMARIZATION = "summarization"
-    CONVERSATIONAL = "conversational"
-    ANALYTICAL = "analytical"
-    CUSTOM = "custom"
 
 
 class AgentBase(SQLModel):

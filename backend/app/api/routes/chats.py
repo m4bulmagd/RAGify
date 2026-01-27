@@ -69,7 +69,7 @@ async def get_session(
     session_id: UUID,
 ) -> Any:
     """Get chat session by ID with messages"""
-    session = await chat_session_crud.get(db, session_id)
+    session = await chat_session_crud.get_with_messages(db, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -78,15 +78,7 @@ async def get_session(
             status_code=403, detail="Not authorized to access this session"
         )
 
-    # Get messages
-    messages = await chat_message_crud.get_session_messages(db, session_id)
-
-    # Combine results
-    # Ideally should be done in CRUD/Model but for now explicit composition
-    session_detail = ChatSessionDetail.model_validate(session)
-    session_detail.messages = messages
-
-    return session_detail
+    return session
 
 
 @router.patch("/sessions/{session_id}", response_model=ChatSessionResponse)
@@ -163,31 +155,46 @@ async def send_message(
         db, session_id=session.id, role="user", content=chat_request.message
     )
 
-    # 3. Trigger Agent (Mock for now)
-    # TODO: Integrate with actual Agent Runner / LLM Service
-    agent_response_content = (
-        f"Echo: {chat_request.message} (Agent {chat_request.agent_id})"
-    )
+    # 3. Trigger Agent
+    try:
+        from app.services.agent_service import AgentService
 
-    agent_msg = await chat_message_crud.create_message(
-        db,
-        session_id=session.id,
-        role="assistant",
-        content=agent_response_content,
-        model_name="mock-model",
-        tokens_used=10,
-        latency_ms=100,
-    )
+        agent_service = AgentService(db)
 
-    return ChatResponse(
-        session_id=session.id,
-        message_id=agent_msg.id,
-        content=agent_response_content,
-        sources=[],
-        model_name="mock-model",
-        tokens_used=10,
-        latency_ms=100,
-    )
+        response_text, citations = await agent_service.run_agent(
+            agent_id=session.agent_id, query=chat_request.message, session_id=session.id
+        )
+
+        # Calculate tokens (mock/estimate for now or get from provider return)
+        tokens_used = len(response_text.split()) * 1.3  # Rough estimate
+
+        agent_msg = await chat_message_crud.create_message(
+            db,
+            session_id=session.id,
+            role="assistant",
+            content=response_text,
+            model_name="rag-agent",  # precise model name could come from run_agent return
+            tokens_used=int(tokens_used),
+            latency_ms=0,  # Need to track this
+        )
+
+        return ChatResponse(
+            session_id=session.id,
+            message_id=agent_msg.id,
+            content=response_text,
+            sources=citations,
+            model_name="rag-agent",
+            tokens_used=int(tokens_used),
+            latency_ms=0,
+        )
+    except Exception as e:
+        # Log error
+        import logging
+
+        logging.getLogger(__name__).error(f"Agent execution failed: {e}")
+        # Return fallback or error?
+        # For now, propagate error to see what happens
+        raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
 
 @router.post("/messages/{message_id}/feedback", response_model=ChatFeedbackResponse)
