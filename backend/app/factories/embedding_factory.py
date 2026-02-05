@@ -19,7 +19,6 @@ class EmbeddingProviderType(str, Enum):
 
     GEMINI = "gemini"
     OPENAI = "openai"
-    COHERE = "cohere"
 
 
 class EmbeddingFactory:
@@ -44,8 +43,8 @@ class EmbeddingFactory:
         Create an embedding provider instance.
 
         Args:
-            provider_type: Type of provider ("gemini", "openai", "cohere")
-                          If None, uses the default provider
+            provider_type: Type of provider ("gemini", "openai")
+            If None, uses the default provider
             **kwargs: Additional arguments passed to the provider constructor
 
         Returns:
@@ -72,13 +71,6 @@ class EmbeddingFactory:
             )
 
             return OpenAIEmbeddingProvider(**kwargs)
-
-        elif provider_type == EmbeddingProviderType.COHERE.value:
-            from app.providers.embeddings.cohere_embeddings import (
-                CohereEmbeddingProvider,
-            )
-
-            return CohereEmbeddingProvider(**kwargs)
 
         else:
             raise ValueError(

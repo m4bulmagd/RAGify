@@ -15,7 +15,6 @@ class GeminiModel(str, Enum):
 class EmbeddingModel(str, Enum):
     OPENAI_TEXT_EMBEDDING_3_SMALL = "text-embedding-3-small"
     GEMINI_EMBEDDING_001 = "gemini-embedding-001"
-    COHERE_EMBED_ENGLISH_V3 = "embed-english-v3.0"
 
 
 DEFAULT_LLM_MODEL = OpenAIModel.GPT_4_TURBO_PREVIEW

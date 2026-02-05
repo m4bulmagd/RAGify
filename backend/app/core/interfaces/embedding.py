@@ -14,7 +14,7 @@ class EmbeddingProvider(ABC):
     """
     Abstract base class for embedding providers.
 
-    All embedding implementations (OpenAI, Gemini, Cohere, etc.)
+    All embedding implementations (OpenAI, Gemini, etc.)
     must implement this interface.
 
     The interface provides two methods:
@@ -22,8 +22,8 @@ class EmbeddingProvider(ABC):
     - embed_query: For embedding search queries
 
     This separation allows providers to optimize embeddings based on
-    the use case (e.g., Gemini uses different task types, Cohere uses
-    different input types) without exposing these details in the interface.
+    the use case (e.g., Gemini uses different task types)
+    without exposing these details in the interface.
     """
 
     @property
